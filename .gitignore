@@ -1,0 +1,32 @@
+# Python virtual environment
+.venv/
+venv/
+__pycache__/
+*.pyc
+
+# Jupyter and notebook files
+.ipynb_checkpoints/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs and memory
+memory.json
+research_log.md
+
+# Memory backups and filter logs
+memory_backup_*.json
+filter_log_*.json
+
+# Test artifacts
+test_memory.json
+test_model.py
+analyze_techniques.py
+
+# Temporary files
+*.tmp
+*.temp
+
+# VS Code
+.vscode/
