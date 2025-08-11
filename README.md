@@ -1,177 +1,61 @@
 # PocketResearcher: AI-Driven Research with Memory and Learning
 
-PocketResearcher is an educational proof-of-concept application that demonstrates how a language model (LLM) can be used for self-learning and continuous research. The project successfully showcases AI-driven exploration with persistent memory, structured reflection, and mathematical proof analysis.
+I have always been curious about mathematics and proofs but unfortunately wasn't very good at them and focused on getting an engineering degree instead. But I never lost my interest in mathematics.
 
-## 🎯 Project Goals (Achieved)
-- ✅ **Illustrate LLM research memory**: Persistent storage of facts, ideas, and structured insights
-- ✅ **Demonstrate continuous learning**: Adaptive approach with reflection-driven improvements  
-- ✅ **Provide AI research framework**: Modular system for experimenting with different research domains
-- ✅ **Mathematical proof analysis**: Advanced technique recognition and barrier identification
-- ✅ **Token-efficient design**: Robust memory management preventing context overflow
+I have recently started delving into AI algorithms and specifically algorithms focused on neural networks. These studies focused on linear algebra, some calculus, but mostly the focus was on the structure of a neural network and things like forward passes and backpropagation. 
 
-## 🔬 Research Achievements
+I wanted to turn my attention to LLMs and how they might help lead us to new discoveries. One challenge about LLMs is that they only know what they know. They are not designed for continuous learning. And at their core they are really just trying to fill in missing context, but they have an enormous amount of data so what they can produce is quite incredible.
 
-### **Knowledge Accumulated (19 Facts)**
-The system has learned comprehensive foundational knowledge about computational complexity:
-- Core definitions of P and NP complexity classes
-- Historical context and key researchers (Cook, Levin, et al.)
-- Major proof techniques and their limitations
-- Barrier theorems (Baker-Gill-Solovay, Razborov-Rudich)
-- Alternative approaches (algebraic geometry, quantum complexity)
+But I wanted to look into a system that could use existing open source libraries to generate mathematical proofs, and then try to learn from what we discover. This would require some sort of memory management so that we can retain and use what we have so far learned.
 
-### **Research Ideas Generated (12 Novel Approaches)**
-The AI has proposed diverse research directions:
-- **Algorithmic**: Direct polynomial-time algorithms for SAT/3-SAT
-- **Structural**: Circuit complexity lower bounds and diagonalization
-- **Mathematical**: Algebraic geometry and descriptive complexity applications
-- **Interdisciplinary**: Connections to cryptography and number theory
-- **Modern**: Quantum computing insights and randomness studies
-- **Hybrid**: Novel quantum-classical complexity approaches
+To be clear, this is NOT a project that expects to discover anything new. Much smarter people than I, with access to giant LLMs will hopefully make the scientific discoveries. But I wanted to at least understand how they will use AI in their pursuit of knowledge.
 
-### **Structured Insights (16 Reflections)**
-The system identifies patterns and barriers through structured analysis:
-- **Limitations**: Relativization barriers, lack of concrete solutions
-- **Patterns**: Focus on algorithmic vs. structural approaches
-- **Opportunities**: Interdisciplinary connections, unexplored quantum methods
-- **Recommendations**: Alternative mathematical frameworks, randomness studies
+So I created a project that makes use of various open source Python libraries and an LLM in order to start experimenting with mathematical proofs, and trying to discover something new. I'm hoping that the concept is at least similar to what might be done to really discover new theories and proofs.
 
-### **Proof Technique Analysis**
-Advanced mathematical content parsing with technique-specific analysis:
-- **Quantum approaches**: Computational model analysis with classical limitations
-- **Six proof categories**: Algebraic, geometric, probabilistic, quantum, diagonalization, reduction
-- **Barrier identification**: Systematic recognition of technique limitations
+Note that I used AI to help generate this project. 
 
-## 🔬 Example Problem: P vs NP Research
-The system uses the famous P = NP problem as a demonstration case, achieving remarkable depth:
+## LLM
 
-**Research Scope**: From basic complexity class definitions to advanced barrier theorems and quantum approaches.
+PocketResearcher uses a lightweight local language model (LLM) to generate mathematical statements, suggest possible theorems, and attempt informal and formal proofs. The LLM is not expected to solve major open problems, but it demonstrates how AI can assist in mathematical exploration and reasoning.
 
-**Key Insights Discovered**:
-- Relativization techniques cannot resolve P vs NP (Baker-Gill-Solovay)
-- Natural proofs barriers limit circuit complexity approaches (Razborov-Rudich)  
-- Algebraic geometry and quantum complexity offer alternative pathways
-- Interdisciplinary connections to cryptography and number theory show promise
+## Memory
 
-**Novel Research Directions**: The AI independently proposed combining quantum computing with classical complexity theory, suggesting potential breakthrough approaches.
+The system maintains a persistent memory of facts, ideas, proofs, and breakthroughs. This memory is stored in `memory.json` and is updated as new discoveries are made. The memory allows the project to learn from previous attempts and avoid repeating the same steps.
 
-## 🏗️ Project Structure
-```
-src/
-    pocketresearcher.py      # Main research orchestration with LLM integration
-    memory.py               # Persistent storage with multiple backend support  
-    proof_assistant.py      # Mathematical proof technique analysis
+## Filtering
 
-test/
-    test_pocketresearcher.py   # Unit tests for core functions
+To ensure quality, PocketResearcher uses a content filtering module that removes irrelevant, low-quality, or duplicate information from memory. Only substantial mathematical content is retained, helping the system focus on meaningful progress.
 
-memory.json                 # Structured storage: facts, ideas, reflections, experiments
-research_log.md            # Chronological markdown log of research sessions
-```
+## Discovery
 
-## 🔧 Technical Architecture
+The project is designed to simulate the process of mathematical discovery. It generates new statements, attempts proofs, analyzes significance, and records breakthroughs. While it is unlikely to solve major problems, it provides a framework for experimenting with AI-driven research.
 
-### **Memory System**
-- **Persistent JSON storage** with structured data organization
-- **Duplicate prevention** using semantic similarity analysis  
-- **Token limit management** preventing context overflow
-- **Modular backends** supporting file, MongoDB, and Memcached storage
+## Project Structure
 
-### **Research Pipeline**
-1. **Context Building**: Intelligent truncation of historical data
-2. **LLM Generation**: Controlled token limits with fallback prompts
-3. **Content Extraction**: Fact/idea parsing with novelty detection
-4. **Mathematical Analysis**: Proof technique recognition and categorization
-5. **Structured Reflection**: Pattern identification and opportunity analysis
-6. **Progress Logging**: Comprehensive research session documentation
+- `src/`: Main source code, including proof generation, memory management, filtering, and analysis modules.
+- `test/`: Unit tests for core functionality.
+- `memory.json`: Persistent storage for learned facts, ideas, and proofs.
 
-### **Advanced Features**
-- **Mathematical Content Parsing**: Automatic recognition of proof techniques
-- **Technique Database**: Six major proof approach categories with limitations
-- **Reflection Structure**: Typed insights (patterns, limitations, opportunities)
-- **Token Protection**: Dynamic prompt truncation maintaining research quality
+## Dependencies
 
-## 📦 External Libraries
-- **transformers**: Microsoft Phi-2 language model for research generation
-- **TensorFlow, PyTorch**: ML framework backends with CPU optimization
-- **JSON**: Structured data persistence and memory organization
-- **unittest**: Comprehensive testing framework for reliability
+- Python 3.8+: Core language for the project.
+- transformers: Runs the local LLM for generating mathematical statements and proofs.
+- sympy: Symbolic mathematics, theorem generation, and proof attempts.
+- lean_dojo: Formal proof experiments and Lean theorem interaction.
+- numpy, scipy: Numerical and scientific computations.
+- pymongo, memcache (optional): Database/memory backend support.
+- requests: HTTP requests for external data (if needed).
+- rich, loguru: Enhanced logging and output formatting.
+- pytest, unittest: Unit testing frameworks.
 
-## ⚙️ How It Works (Enhanced Pipeline)
-1. **Memory Loading**: Retrieves structured research history with intelligent truncation
-2. **Context Building**: Assembles research prompt with token limit protection  
-3. **LLM Research Generation**: Produces new facts and ideas with duplicate prevention
-4. **Mathematical Analysis**: Identifies and analyzes proof techniques automatically
-5. **Structured Reflection**: Generates typed insights (patterns, limitations, opportunities)
-6. **Persistent Storage**: Saves all findings in organized JSON structure
-7. **Progress Documentation**: Creates comprehensive markdown research logs
+## How to Run
 
-## 🚀 Running the Project
-1. **Install dependencies** in your virtual environment:
-   ```bash
-   .venv/bin/pip install transformers tensorflow torch
-   ```
-2. **Run the main application:**
-   ```bash
-   .venv/bin/python -m src.pocketresearcher
-   ```
-   *Alternative (from src directory):*
-   ```bash
-   .venv/bin/python src/pocketresearcher.py
-   ```
-3. **Run unit tests:**
-   ```bash
-   .venv/bin/python -m unittest discover -s test
-   ```
+1. Install dependencies: `pip install -r requirements.txt`
+2. Run the main script: `python src/pocketresearcher.py`
+3. Review output in `memory.json`
 
-## 📊 What to Expect (Real Achievements)
-- **Rich Knowledge Accumulation**: 19+ facts about computational complexity theory
-- **Diverse Research Ideas**: 12+ novel approaches spanning multiple mathematical domains  
-- **Structured Insights**: Pattern recognition and barrier identification
-- **Mathematical Depth**: Automatic proof technique analysis and categorization
-- **Adaptive Learning**: Reflection-driven research direction evolution
-- **Token Efficiency**: Robust memory management preventing context overflow
-- **Research Documentation**: Comprehensive logs in both JSON and markdown formats
+## Expected Output
 
-### **Sample Output**
-```
-Progress Summary (2025-08-11T13:35:24):
-Total facts: 19
-Total ideas: 12  
-Total proof steps: 0
-Techniques analyzed: 1
-Novelty of latest idea: Novel
-
-Structured Insights:
-- Pattern: Focus on interdisciplinary connections
-- Limitation: Lack of concrete solution approaches  
-- Opportunity: Quantum-classical complexity combinations
-```
-
-## 🎓 Educational Use & Research Value
-This project demonstrates advanced concepts in AI research automation:
-
-### **Computer Science Education**
-- **AI Memory Systems**: Persistent learning with structured knowledge representation
-- **Natural Language Processing**: LLM integration with controlled generation pipelines  
-- **Complexity Theory**: Comprehensive exploration of P vs NP with barrier analysis
-- **Software Architecture**: Modular design with configurable backends and robust error handling
-
-### **Research Applications**  
-- **Automated Literature Discovery**: Pattern recognition in mathematical research
-- **Proof Technique Analysis**: Systematic categorization of mathematical approaches
-- **Interdisciplinary Connections**: AI-driven identification of cross-field opportunities
-- **Research Documentation**: Structured logging for reproducible research workflows
-
-### **Production Considerations**
-While educational in nature, the system demonstrates production-ready concepts:
-- Token limit management for scalable LLM applications
-- Modular storage backends (File/MongoDB/Memcached) for different deployment scenarios
-- Robust duplicate prevention and content validation
-- Comprehensive error handling and fallback mechanisms
-
----
-
-## 🔬 **Research Impact Achieved**
-*This project successfully demonstrates that LLMs can conduct meaningful mathematical research with proper memory architecture, generating novel insights and identifying research opportunities that align with cutting-edge complexity theory.*
-
-**Feel free to experiment with different research topics, extend the proof technique database, or integrate additional mathematical domains!**
+- Generated mathematical statements and attempted proofs
+- Analysis of proof significance and quality
+- Persistent memory of discoveries and breakthroughs
