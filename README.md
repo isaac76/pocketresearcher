@@ -1,22 +1,22 @@
 # PocketResearcher: AI-Driven Research with Memory and Learning
 
-I have always been curious about mathematics and proofs but unfortunately wasn't very good at them and focused on getting an engineering degree instead. But I never lost my interest in mathematics.
+I have always been curious about mathematics and proofs, but unfortunately wasn't very good at them and focused on getting an engineering degree instead. However, I never lost my interest in mathematics.
 
-I have recently started delving into AI algorithms and specifically algorithms focused on neural networks. These studies focused on linear algebra, some calculus, but mostly the focus was on the structure of a neural network and things like forward passes and backpropagation. 
+I have recently started delving into AI algorithms, specifically those focused on neural networks. These studies covered linear algebra and some calculus, but mostly focused on neural network structure and concepts like forward passes and backpropagation. 
 
-I wanted to turn my attention to LLMs and how they might help lead us to new discoveries. One challenge about LLMs is that they only know what they know. They are not designed for continuous learning. And at their core they are really just trying to fill in missing context, but they have an enormous amount of data so what they can produce is quite incredible.
+I wanted to turn my attention to LLMs and how they might help lead us to new discoveries. One challenge with LLMs is that they only know what they know—they are not designed for continuous learning. At their core, they are trying to fill in missing context, but they have access to enormous amounts of data, so what they can produce is quite incredible.
 
-But I wanted to look into a system that could use existing open source libraries to generate mathematical proofs, and then try to learn from what we discover. This would require some sort of memory management so that we can retain and use what we have so far learned.
+However, I wanted to explore a system that could use existing open-source libraries to generate mathematical proofs and then learn from what we discover. This would require memory management so that we can retain and use what we have learned so far.
 
-To be clear, this is NOT a project that expects to discover anything new. Much smarter people than I, with access to giant LLMs will hopefully make the scientific discoveries. But I wanted to at least understand how they will use AI in their pursuit of knowledge.
+To be clear, this is NOT a project that expects to discover anything new. Really smart mathematicians and computer scientists are working on similar approaches and will hopefully use LLMs to discover new theories and proofs, and will hopefully advance mathematics and science. I just wanted to try to understand some of what they are doing and how we might implement continuous learning in conjunction with LLMs.
 
-So I created a project that makes use of various open source Python libraries and an LLM in order to start experimenting with mathematical proofs, and trying to discover something new. I'm hoping that the concept is at least similar to what might be done to really discover new theories and proofs.
+So I created a project that makes use of various open-source Python libraries and an LLM to start experimenting with mathematical proofs and trying to discover something new. I'm hoping that the concept is at least similar to what might be done to really discover new theories and proofs.
 
 Note that I used AI to help generate this project. 
 
 ## LLM Configuration
 
-PocketResearcher now supports multiple language models with automatic fallback:
+PocketResearcher supports multiple language models with automatic fallback:
 
 ### Supported Models
 - **Google Gemini (default)**: High-quality API-based model with rate limiting (15 requests/minute)
@@ -49,12 +49,13 @@ ENABLE_RATE_LIMITING = True # Automatic throttling
 - Seamless switching with no interruption
 
 ### API Setup
-1. Copy configuration template: `cp config.py.sample config.py`
-2. Get a free Gemini API key from [Google AI Studio](https://aistudio.google.com/)
-3. Edit `config.py` and replace `YOUR_GEMINI_API_KEY_HERE` with your actual key
-4. System will automatically use Gemini with rate limiting
+1. Get a free Gemini API key from [Google AI Studio](https://aistudio.google.com/)
+2. Update `GEMINI_API_KEY` in `config.py`
+3. System will automatically use Gemini with rate limiting
 
-**Note**: The `config.py` file is excluded from git to protect your API keys. Never commit actual API keys to version control.
+## LLM
+
+PocketResearcher uses a lightweight local language model (LLM) to generate mathematical statements, suggest possible theorems, and attempt informal and formal proofs. The LLM is not expected to solve major open problems, but it demonstrates how AI can assist in mathematical exploration and reasoning.
 
 ## Memory
 
@@ -76,25 +77,28 @@ The project is designed to simulate the process of mathematical discovery. It ge
 
 ## Dependencies
 
-- Python 3.8+: Core language for the project.
-- **google-generativeai**: Google Gemini API for high-quality text generation.
-- transformers: Local LLM support (Phi-2, GPT-2) for offline operation.
-- sympy: Symbolic mathematics, theorem generation, and proof attempts.
-- lean_dojo: Formal proof experiments and Lean theorem interaction.
-- numpy, scipy: Numerical and scientific computations.
-- pymongo, memcache (optional): Database/memory backend support.
-- requests: HTTP requests for external data (if needed).
-- rich, loguru: Enhanced logging and output formatting.
-- pytest, unittest: Unit testing frameworks.
+- **Python 3.8+**: Core language for the project
+- **google-generativeai**: Google Gemini API for high-quality text generation
+- **transformers**: Local LLM support (Phi-2, GPT-2) for offline operation
+- **sympy**: Symbolic mathematics, theorem generation, and proof attempts
+- **lean_dojo**: Formal proof experiments and Lean theorem interaction
+- **numpy, scipy**: Numerical and scientific computations
+- **torch**: PyTorch for running local transformer models
+- **requests**: HTTP requests for external data (if needed)
+- **rich, loguru**: Enhanced logging and output formatting
+- **pytest, unittest**: Unit testing frameworks
+
+See `requirements.txt` for complete dependency list with versions.
 
 ## How to Run
 
 ### Quick Start
 1. Install dependencies: `pip install -r requirements.txt`
-2. (Optional) Get a free Gemini API key from [Google AI Studio](https://aistudio.google.com/)
-3. Update `config.py` with your API key (or use local models only)
-4. Run the main script: `python src/pocketresearcher.py`
-5. Review output in `memory.json` and console logs
+2. Copy configuration template: `cp config.py.sample config.py`
+3. (Optional) Get a free Gemini API key from [Google AI Studio](https://aistudio.google.com/)
+4. Edit `config.py` to add your API key (or use local models only)
+5. Run the main script: `python src/pocketresearcher.py`
+6. Review output in `memory.json` and console logs
 
 ### Configuration Options
 - **With Gemini API**: High-quality generation with automatic rate limiting
