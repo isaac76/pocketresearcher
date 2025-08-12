@@ -71,7 +71,9 @@ class ContentFilter:
             "turing machine", "decidable", "completeness", "hierarchy", "oracle",
             "lower bound", "upper bound", "verification", "satisfiability"
         ]
-        self.math_keywords = self.config.get("math_keywords", default_math_keywords)
+        # Use domain_keywords from config if available, fall back to math_keywords, then default
+        self.math_keywords = (self.config.get("domain_keywords") or 
+                            self.config.get("math_keywords", default_math_keywords))
         
         # Content categories for filtering
         self.content_categories = {

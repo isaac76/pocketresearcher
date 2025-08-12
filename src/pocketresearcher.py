@@ -89,8 +89,26 @@ def run_research_loop(config):
     print(f"⚙️  Content filter configured for {config.PROBLEM_DOMAIN}")
     print(f"   - Min relevance: {config.CONTENT_FILTER_CONFIG['min_mathematical_relevance']}")
     
-    # Initialize LLM with unified config
-    llm_manager = LLMManager(config.DEFAULT_LLM)
+    # Initialize LLM with unified config and pass all relevant settings
+    llm_manager = LLMManager(
+        config.DEFAULT_LLM,
+        config={
+            "GEMINI_API_KEY": config.GEMINI_API_KEY,
+            "GEMINI_RATE_LIMIT": config.RATE_LIMIT,
+            "LOCAL_MODELS": {
+                "phi2": "microsoft/phi-2",
+                "gpt2": "gpt2",
+                "gpt2-medium": "gpt2-medium",
+                "gpt2-large": "gpt2-large"
+            },
+            "FALLBACK_LOCAL_MODEL": config.FALLBACK_LOCAL_MODEL,
+            "MAX_TOKENS": config.MAX_TOKENS,
+            "TEMPERATURE": config.TEMPERATURE,
+            "VERBOSE_OUTPUT": config.VERBOSE_OUTPUT,
+            "ENABLE_RATE_LIMITING": config.ENABLE_RATE_LIMITING,
+            "LOG_API_CALLS": config.LOG_API_CALLS
+        }
+    )
     
     # Initialize formal proof engine
     api_key = config.GEMINI_API_KEY if config.ENABLE_LEAN_TRANSLATION else None
@@ -164,6 +182,22 @@ def validate_memory_consistency(memory, config):
             if any(indicator in idea_lower for indicator in pnp_indicators):
                 wrong_domain_content.append(f"Idea: {idea[:50]}...")
     
+    # Check formal proofs for wrong domain content
+    for i, proof in enumerate(memory.get('formal_proofs', [])):
+        proof_text = str(proof).lower()
+        
+        if config.problem_name == 'direct_proof':
+            pnp_indicators = ['np-complete', 'polynomial time', 'sat', 'complexity theory', 'p vs np', 'p = np', 'p ⊆ np', 'p \\u2286 np', 'p_subset_np']
+            if any(indicator in proof_text for indicator in pnp_indicators):
+                proof_name = proof.get('theorem_name', f'Proof {i}')
+                wrong_domain_content.append(f"Formal Proof: {proof_name}...")
+        
+        elif config.problem_name == 'p_vs_np':
+            number_theory_indicators = ['even number', 'odd number', '2k where k', 'divisible by 2']
+            if any(indicator in proof_text for indicator in number_theory_indicators):
+                proof_name = proof.get('theorem_name', f'Proof {i}')
+                wrong_domain_content.append(f"Formal Proof: {proof_name}...")
+    
     if wrong_domain_content:
         print(f"⚠️  WARNING: Memory contamination detected!")
         print(f"   Problem: {config.PROBLEM_NAME}")
@@ -199,6 +233,59 @@ def clean_memory_file(memory, config):
     memory.clear()
     memory.update(clean_memory)
 
+def extract_meaningful_content(generated_text: str, content_type: str) -> str:
+    """
+    Extract meaningful mathematical content from LLM output.
+    Handles various formats like "Solution 0:", "Problem:", etc.
+    """
+    if not generated_text:
+        return ""
+    
+    lines = generated_text.strip().split('\n')
+    
+    # Filter out common prefixes that aren't useful
+    skip_patterns = [
+        "solution", "problem", "answer", "step", "example", "note", 
+        "possible rewrite", "rewrite", "question", "hint"
+    ]
+    
+    # Look for lines that contain mathematical content
+    mathematical_keywords = [
+        "even", "odd", "number", "integer", "sum", "addition", "proof", 
+        "algebra", "divisible", "remainder", "theorem", "property"
+    ]
+    
+    best_line = ""
+    best_score = 0
+    
+    for line in lines:
+        line = line.strip()
+        if len(line) < 10:  # Too short
+            continue
+            
+        line_lower = line.lower()
+        
+        # Skip lines that start with common prefixes
+        if any(line_lower.startswith(pattern) for pattern in skip_patterns):
+            continue
+        
+        # Score based on mathematical content
+        score = sum(1 for keyword in mathematical_keywords if keyword in line_lower)
+        score += len(line) / 50  # Slight preference for longer lines
+        
+        if score > best_score:
+            best_score = score
+            best_line = line
+    
+    # If no good line found, return the first substantial line
+    if not best_line:
+        for line in lines:
+            line = line.strip()
+            if len(line) >= 15:  # At least some substance
+                return line
+    
+    return best_line
+
 def run_single_research_step(memory, config, llm_manager, content_filter, 
                            formal_engine, proof_assistant, breakthrough_detector):
     """Run a single research step using unified configuration"""
@@ -209,7 +296,7 @@ def run_single_research_step(memory, config, llm_manager, content_filter,
     
     fact_prompt = config.FACT_PROMPT.format(recent_fact=recent_fact)
     fact_result = llm_manager.generate(fact_prompt, max_tokens=config.MAX_TOKENS)
-    fact = fact_result.strip().split('\n')[0] if fact_result else None
+    fact = extract_meaningful_content(fact_result, "fact") if fact_result else None
     
     # Generate idea using problem-specific prompt  
     recent_ideas = memory.get("ideas", [])[-3:] if memory.get("ideas") else []
@@ -217,7 +304,7 @@ def run_single_research_step(memory, config, llm_manager, content_filter,
     
     idea_prompt = config.IDEA_PROMPT.format(recent_idea=recent_idea)
     idea_result = llm_manager.generate(idea_prompt, max_tokens=config.MAX_TOKENS)
-    idea = idea_result.strip().split('\n')[0] if idea_result else None
+    idea = extract_meaningful_content(idea_result, "idea") if idea_result else None
     
     result = f"Generated Research Step:\nFact: {fact}\nIdea: {idea}"
     
@@ -272,10 +359,28 @@ def generate_formal_proofs(memory, llm_manager, formal_engine, config):
     # Use recent content to generate new theorems
     if facts:
         recent_context = f"Recent research: {facts[-1]}"
-        theorem_prompt = f"{recent_context}. State a new theorem about {config.PROBLEM_DOMAIN}: "
+        if config.problem_name == "direct_proof":
+            theorem_prompt = f"{recent_context}. State a new theorem specifically about even numbers, odd numbers, or their arithmetic properties: "
+        else:
+            theorem_prompt = f"{recent_context}. State a new theorem about computational complexity theory or P vs NP: "
         generated_theorem = llm_manager.generate(theorem_prompt, max_tokens=50)
         if generated_theorem:
-            theorem_templates.insert(0, generated_theorem.strip())
+            # Filter out contaminated theorem suggestions
+            theorem_clean = generated_theorem.strip()
+            if config.problem_name == "direct_proof":
+                # Reject P vs NP contamination in direct_proof
+                pnp_indicators = ['polynomial time', 'np-complete', 'complexity theory', 'p vs np', 'p = np', 'reduction', 'sat problem']
+                if any(indicator in theorem_clean.lower() for indicator in pnp_indicators):
+                    print(f"🚫 Rejected contaminated theorem: {theorem_clean[:50]}...")
+                else:
+                    theorem_templates.insert(0, theorem_clean)
+            else:
+                # For p_vs_np, reject number theory contamination
+                number_theory_indicators = ['even number', 'odd number', '2k where k', 'divisible by 2']
+                if any(indicator in theorem_clean.lower() for indicator in number_theory_indicators):
+                    print(f"🚫 Rejected contaminated theorem: {theorem_clean[:50]}...")
+                else:
+                    theorem_templates.insert(0, theorem_clean)
     
     proof_results = []
     for theorem in theorem_templates[:2]:  # Try 2 theorems

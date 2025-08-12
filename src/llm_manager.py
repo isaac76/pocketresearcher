@@ -109,11 +109,15 @@ class LLMManager:
     
     def _init_gemini(self) -> bool:
         """Initialize Gemini API"""
-        if not GEMINI_AVAILABLE or not self.config.get("GEMINI_API_KEY"):
+        api_key = self.config.get("GEMINI_API_KEY")
+        if not GEMINI_AVAILABLE:
+            print("[Gemini Init] google-generativeai package not available.")
             return False
-        
+        if not api_key:
+            print("[Gemini Init] No Gemini API key found in config.")
+            return False
         try:
-            genai.configure(api_key=self.config.get("GEMINI_API_KEY"))
+            genai.configure(api_key=api_key)
             self.gemini_model = genai.GenerativeModel('gemini-1.5-flash')
             if self.config.get("VERBOSE_OUTPUT", True):
                 print("✓ Gemini API initialized")
