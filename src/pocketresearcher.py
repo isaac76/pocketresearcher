@@ -69,6 +69,7 @@ def run_research_loop(config):
     from formal_proof_engine import FormalProofEngine
     from proof_assistant import MathProofAssistant
     from breakthrough_detector import BreakthroughDetector
+    from quality_assessor import ProofQualityAssessor
     from llm_manager import LLMManager
     
     print("🚀 Starting PocketResearcher v2 with Unified Configuration")
@@ -116,6 +117,7 @@ def run_research_loop(config):
     
     proof_assistant = MathProofAssistant()
     breakthrough_detector = BreakthroughDetector()
+    quality_assessor = ProofQualityAssessor()
     
     # Initialize memory if empty or contaminated
     if not memory.get("facts") or len(memory.get("facts", [])) == 0:
@@ -132,7 +134,7 @@ def run_research_loop(config):
     try:
         print("🔬 Running research iteration...")
         result = run_single_research_step(memory, config, llm_manager, content_filter, 
-                                        formal_engine, proof_assistant, breakthrough_detector)
+                                        formal_engine, proof_assistant, breakthrough_detector, quality_assessor)
         
         # Save updated memory
         memory_store.save(memory)
@@ -287,7 +289,7 @@ def extract_meaningful_content(generated_text: str, content_type: str) -> str:
     return best_line
 
 def run_single_research_step(memory, config, llm_manager, content_filter, 
-                           formal_engine, proof_assistant, breakthrough_detector):
+                           formal_engine, proof_assistant, breakthrough_detector, quality_assessor):
     """Run a single research step using unified configuration"""
     
     # Generate fact using problem-specific prompt
@@ -326,16 +328,24 @@ def run_single_research_step(memory, config, llm_manager, content_filter,
             print(f"❌ Rejected idea: {idea_reason}")
     
     # Formal proof generation based on unified config
-    if (len(memory.get("facts", [])) % config.PROOF_GENERATION_FREQUENCY == 0 and 
-        config.ENABLE_FORMAL_PROOFS):
-        print("\n=== FORMAL THEOREM GENERATION & PROVING ===")
-        proof_results = generate_formal_proofs(memory, llm_manager, formal_engine, config)
+    should_generate_proofs = (
+        config.ENABLE_FORMAL_PROOFS and (
+            # Always generate for direct_proof (even sum experiment)
+            config.problem_name == "direct_proof" or
+            # Or based on frequency for other problems
+            len(memory.get("facts", [])) % config.PROOF_GENERATION_FREQUENCY == 0
+        )
+    )
+    
+    if should_generate_proofs:
+        print("\n=== FORMAL THEOREM GENERATION & PROVING with Quality Assessment ===")
+        proof_results = generate_formal_proofs(memory, llm_manager, formal_engine, quality_assessor, config)
         memory.setdefault("formal_proofs", []).extend(proof_results)
     
     return result
 
-def generate_formal_proofs(memory, llm_manager, formal_engine, config):
-    """Generate formal proofs using unified configuration"""
+def generate_formal_proofs(memory, llm_manager, formal_engine, quality_assessor, config):
+    """Generate formal proofs using unified configuration with quality assessment"""
     
     # Generate problem-appropriate theorem statements
     facts = memory.get("facts", [])
@@ -387,12 +397,60 @@ def generate_formal_proofs(memory, llm_manager, formal_engine, config):
         print(f"\n--- Attempting: {theorem} ---")
         proof_result = formal_engine.attempt_proof_with_translation(theorem)
         proof_result["timestamp"] = datetime.now().isoformat()
-        proof_results.append(proof_result)
         
         if proof_result["success"]:
-            print(f"✓ Proof successful!")
+            print(f"✅ Lean validation: SUCCESS")
+            
+            # 🎯 NEW: Quality Assessment
+            lean_code = proof_result.get("lean_code", "")
+            if lean_code:
+                quality_info = quality_assessor.assess_proof_quality(
+                    lean_code, theorem, config.problem_name
+                )
+                proof_result["quality_assessment"] = quality_info
+                
+                print(f"🎯 Proof Quality: {quality_info['quality_score']:.1f}/1.0")
+                print(f"💡 Assessment: {quality_info['explanation']}")
+                print(f"🔬 Mathematical Type: {quality_info['mathematical_substance']}")
+                
+                if quality_info["is_meaningful"]:
+                    print("🏆 HIGH QUALITY: Proof shows meaningful mathematical reasoning!")
+                elif quality_info["is_placeholder"]:
+                    print("⚠️  LOW QUALITY: Proof relies on placeholders or trivial tactics")
+                else:
+                    print("📝 MEDIUM QUALITY: Valid proof with basic techniques")
+            else:
+                print("⚠️  No Lean code generated for quality assessment")
         else:
-            print(f"✗ Proof failed: {proof_result.get('error', 'Unknown')}")
+            print(f"❌ Lean validation: FAILED")
+            print(f"Error: {proof_result.get('error', 'Unknown')}")
+        
+        proof_results.append(proof_result)
+            
+        # 🎯 LEARN FROM THIS PROOF ATTEMPT
+        context = facts[-3:] if len(facts) >= 3 else facts  # Use recent facts as context
+        formal_engine.learn_from_proof(proof_result, context)
+        
+        # Add successful proofs to memory for cross-validation
+        memory.setdefault('formal_proofs', []).append(proof_result)
+    
+    # 📊 Generate Quality Report
+    if proof_results:
+        print("\n📊 PROOF SESSION QUALITY REPORT")
+        print("=" * 40)
+        quality_report = quality_assessor.generate_quality_report(proof_results)
+        print(f"📈 {quality_report['summary']}")
+        
+        if quality_report["status"] == "complete":
+            print(f"🎯 Average Quality: {quality_report['average_quality']:.1f}/1.0")
+            print(f"🏆 Best Quality: {quality_report['max_quality']:.1f}/1.0")
+            print(f"✨ Meaningful Proofs: {quality_report['meaningful_proofs']}/{quality_report['total_attempts']}")
+            
+            # Show substance distribution
+            if quality_report['substance_distribution']:
+                print("🔬 Mathematical Reasoning Types:")
+                for substance, count in quality_report['substance_distribution'].items():
+                    print(f"   • {substance.replace('_', ' ').title()}: {count}")
     
     return proof_results
 

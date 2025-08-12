@@ -28,11 +28,15 @@ class FormalProofEngine:
     Engine for generating, validating, and learning from formal mathematical proofs
     """
     
-    def __init__(self, api_key: str = None):
+    def __init__(self, api_key: str = None, learning_file: str = "formal_proof_learning.json"):
         self.lean_available = LEAN_AVAILABLE
         self.proof_cache = {}
         self.learned_tactics = []
         self.successful_patterns = []
+        self.learning_file = learning_file
+        
+        # Load previous learning
+        self._load_learning_data()
         
         # Initialize Lean translator if API key provided
         if api_key:
@@ -59,25 +63,32 @@ class FormalProofEngine:
     
     def generate_formal_conjecture(self, informal_statement: str) -> Optional[str]:
         """
-        Convert informal mathematical statement to formal Lean syntax
+        Convert informal mathematical statement to formal Lean syntax without proof
         """
-        # Pattern matching for common P vs NP related statements
+        # For even number theorems
+        statement_lower = informal_statement.lower()
+        
+        if "sum" in statement_lower and "even" in statement_lower:
+            clean_name = re.sub(r'[^\w]', '_', informal_statement[:50])
+            # Create a proper mathematical statement about even numbers
+            return f"theorem {clean_name} (a b : ℕ) (ha : Even a) (hb : Even b) : Even (a + b)"
+        
+        # Pattern matching for common mathematical statements
         patterns = {
-            r"P.*=.*NP": "theorem p_eq_np : P = NP := by sorry",
-            r"P.*≠.*NP|P.*!=.*NP": "theorem p_neq_np : P ≠ NP := by sorry", 
-            r"SAT.*polynomial": "theorem sat_in_p : SAT ∈ P := by sorry",
-            r"polynomial.*algorithm.*SAT": "theorem sat_poly_alg : ∃ (f : SAT → ℕ), polynomial_time f := by sorry",
-            r"NP.*complete": "theorem np_complete_property (L : Language) : NP_complete L ↔ (L ∈ NP ∧ ∀ L' ∈ NP, L' ≤_p L) := by sorry"
+            r"P.*=.*NP": "theorem p_eq_np : P = NP",
+            r"P.*≠.*NP|P.*!=.*NP": "theorem p_neq_np : P ≠ NP", 
+            r"SAT.*polynomial": "theorem sat_in_p : SAT ∈ P",
+            r"polynomial.*algorithm.*SAT": "theorem sat_poly_alg : ∃ (f : SAT → ℕ), polynomial_time f",
+            r"NP.*complete": "theorem np_complete_property (L : Language) : NP_complete L ↔ (L ∈ NP ∧ ∀ L' ∈ NP, L' ≤_p L)"
         }
         
-        statement_lower = informal_statement.lower()
-        for pattern, lean_code in patterns.items():
+        for pattern, lean_statement in patterns.items():
             if re.search(pattern, statement_lower):
-                return lean_code
+                return lean_statement
                 
-        # Generic theorem template
+        # Generic theorem template without proof
         clean_name = re.sub(r'[^\w]', '_', informal_statement[:50])
-        return f"theorem {clean_name} : True := by sorry  -- {informal_statement}"
+        return f"theorem {clean_name} : True"
     
     def attempt_proof_with_translation(self, informal_statement: str) -> Dict:
         """
@@ -120,15 +131,41 @@ class FormalProofEngine:
         """
         Attempt to prove a theorem using various tactics
         """
-        if not self.lean_available:
-            return {
-                "success": False,
-                "error": "Lean not available",
-                "proof_steps": [],
-                "tactics_tried": []
-            }
+        proof_result = {
+            "success": False,
+            "proof_steps": [],
+            "tactics_tried": [],
+            "error": None,
+            "lean_validation": None,
+            "theorem": theorem_statement
+        }
         
-        # Common proof tactics to try
+        # For even number proofs, try specific tactics
+        if "Even" in theorem_statement and ("sum" in theorem_statement.lower() or "add" in theorem_statement.lower()):
+            # Try a proper even number proof
+            even_proof_tactics = [
+                "exact Even.add ha hb",  # Direct proof using Even.add
+                "apply Even.add; exact ha; exact hb",  # Step by step
+                "simp [Even]; exact ⟨ha.1 + hb.1, by ring⟩",  # Using definition
+            ]
+            
+            for tactic in even_proof_tactics:
+                proof_result["tactics_tried"].append(tactic)
+                proof_attempt = f"by {tactic}"
+                
+                # Test this proof with Lean
+                validation = self.test_with_lean(theorem_statement, proof_attempt)
+                
+                if validation["success"]:
+                    proof_result["success"] = True
+                    proof_result["proof_steps"] = [tactic]
+                    proof_result["lean_validation"] = validation
+                    proof_result["lean_code"] = f"{theorem_statement} := {proof_attempt}"  # Add this for quality assessment
+                    return proof_result
+                else:
+                    proof_result["error"] = validation.get("error", "Tactic failed")
+        
+        # Try basic tactics for other theorems, prioritizing learned successful tactics
         basic_tactics = [
             "trivial",
             "simp",
@@ -136,49 +173,44 @@ class FormalProofEngine:
             "assumption",
             "exact?",
             "apply?",
-            "rw [?]",
-            "contradiction",
-            "exfalso",
+            "ring",
+            "norm_num",
             "constructor"
         ]
         
-        advanced_tactics = [
-            "ring",
-            "field_simp", 
-            "norm_num",
-            "omega",
-            "linarith",
-            "nlinarith",
-            "polyrith"
-        ]
+        # 🎯 SMART TACTIC ORDERING: Prioritize tactics that have worked before
+        if hasattr(self, 'learned_tactics') and self.learned_tactics:
+            # Sort tactics by success rate (success_count / (success_count + failure_count))
+            def success_rate(tactic_name):
+                for learned in self.learned_tactics:
+                    if learned["name"] == tactic_name:
+                        successes = learned.get("success_count", 0)
+                        failures = learned.get("failure_count", 0)
+                        total = successes + failures
+                        if total > 0:
+                            return successes / total
+                return 0.5  # Default rate for unknown tactics
+            
+            # Reorder tactics by success rate
+            basic_tactics.sort(key=success_rate, reverse=True)
+            print(f"🧠 Using learned tactic ordering: {basic_tactics[:3]}...")
         
-        proof_result = {
-            "success": False,
-            "proof_steps": [],
-            "tactics_tried": [],
-            "error": None,
-            "theorem": theorem_statement
-        }
-        
-        # Try basic tactics first
         for tactic in basic_tactics:
             try:
                 proof_result["tactics_tried"].append(tactic)
                 
                 # Create a proof attempt with this tactic
-                if "True" in theorem_statement:
-                    proof_attempt = f"by {tactic}"
-                else:
-                    proof_attempt = f"by {tactic}"
+                proof_attempt = f"by {tactic}"
                 
                 # Actually test this proof with Lean
                 validation = self.test_with_lean(theorem_statement, proof_attempt)
                 
                 if validation["success"]:
                     proof_result["success"] = True
-                    proof_result["proof_steps"] = [f"apply {tactic}"]
+                    proof_result["proof_steps"] = [tactic]
                     proof_result["lean_validation"] = validation
-                    break
+                    proof_result["lean_code"] = f"{theorem_statement} := {proof_attempt}"  # Add this for quality assessment
+                    return proof_result
                 else:
                     # Try next tactic
                     proof_result["error"] = validation.get("error", "Tactic failed")
@@ -192,33 +224,132 @@ class FormalProofEngine:
         """
         Learn patterns from successful/failed proofs to improve future attempts
         """
+        theorem_text = proof_result.get("lean_statement", proof_result.get("theorem", "unknown"))
+        theorem_type = self._classify_theorem(theorem_text)
+        
         if proof_result["success"]:
-            # Extract successful patterns
-            theorem_text = proof_result.get("lean_statement", proof_result.get("theorem", "unknown"))
+            # Learn from successful proofs
             pattern = {
-                "theorem_type": self._classify_theorem(theorem_text),
+                "theorem_type": theorem_type,
                 "successful_tactics": proof_result.get("tactics_tried", []),
+                "working_tactic": proof_result.get("proof_steps", []),
                 "context_keywords": self._extract_keywords(context),
                 "timestamp": datetime.now().isoformat()
             }
             self.successful_patterns.append(pattern)
             
-            # Update learned tactics frequency
-            tactics_tried = proof_result.get("tactics_tried", [])
-            for tactic in tactics_tried:
-                if tactic not in [t["name"] for t in self.learned_tactics]:
+            # Update learned tactics frequency for successful tactics
+            working_tactics = proof_result.get("proof_steps", [])
+            for tactic in working_tactics:
+                found = False
+                for learned_tactic in self.learned_tactics:
+                    if learned_tactic["name"] == tactic:
+                        learned_tactic["success_count"] += 1
+                        learned_tactic["contexts"].append(context[:3])
+                        found = True
+                        break
+                if not found:
                     self.learned_tactics.append({
                         "name": tactic,
                         "success_count": 1,
-                        "contexts": [context[:3]]  # Store recent context
+                        "failure_count": 0,
+                        "contexts": [context[:3]]
                     })
-                else:
-                    # Update existing tactic stats
-                    for learned_tactic in self.learned_tactics:
-                        if learned_tactic["name"] == tactic:
-                            learned_tactic["success_count"] += 1
-                            learned_tactic["contexts"].append(context[:3])
-                            break
+                    
+            print(f"📚 Learned successful pattern for {theorem_type}: {working_tactics}")
+            
+        else:
+            # Learn from failed proofs - track what doesn't work
+            failed_tactics = proof_result.get("tactics_tried", [])
+            lean_validation = proof_result.get("lean_validation") or {}
+            lean_error = lean_validation.get("error", "")
+            
+            # Track failure patterns
+            failure_pattern = {
+                "theorem_type": theorem_type,
+                "failed_tactics": failed_tactics,
+                "error_type": self._classify_error(lean_error),
+                "context_keywords": self._extract_keywords(context),
+                "timestamp": datetime.now().isoformat()
+            }
+            
+            # Store failure patterns (limit to last 50 to avoid memory bloat)
+            if not hasattr(self, 'failure_patterns'):
+                self.failure_patterns = []
+            self.failure_patterns.append(failure_pattern)
+            if len(self.failure_patterns) > 50:
+                self.failure_patterns = self.failure_patterns[-50:]
+            
+            # Update failure counts for tactics
+            for tactic in failed_tactics:
+                found = False
+                for learned_tactic in self.learned_tactics:
+                    if learned_tactic["name"] == tactic:
+                        learned_tactic.setdefault("failure_count", 0)
+                        learned_tactic["failure_count"] += 1
+                        found = True
+                        break
+                if not found:
+                    self.learned_tactics.append({
+                        "name": tactic,
+                        "success_count": 0,
+                        "failure_count": 1,
+                        "contexts": [context[:3]]
+                    })
+                    
+            print(f"📖 Learned failure pattern for {theorem_type}: {self._classify_error(lean_error)}")
+            
+        # Save learning data after each learning event
+        self._save_learning_data()
+            
+    def _load_learning_data(self):
+        """Load learning data from file"""
+        try:
+            import json
+            import os
+            if os.path.exists(self.learning_file):
+                with open(self.learning_file, 'r') as f:
+                    data = json.load(f)
+                    self.learned_tactics = data.get("learned_tactics", [])
+                    self.successful_patterns = data.get("successful_patterns", [])
+                    if hasattr(self, 'failure_patterns'):
+                        self.failure_patterns = data.get("failure_patterns", [])
+                    print(f"📚 Loaded {len(self.learned_tactics)} learned tactics, {len(self.successful_patterns)} successful patterns")
+        except Exception as e:
+            print(f"Warning: Could not load learning data: {e}")
+            
+    def _save_learning_data(self):
+        """Save learning data to file"""
+        try:
+            import json
+            data = {
+                "learned_tactics": self.learned_tactics,
+                "successful_patterns": self.successful_patterns,
+                "failure_patterns": getattr(self, 'failure_patterns', [])
+            }
+            with open(self.learning_file, 'w') as f:
+                json.dump(data, f, indent=2)
+        except Exception as e:
+            print(f"Warning: Could not save learning data: {e}")
+            
+    def _classify_error(self, error_message: str) -> str:
+        """Classify the type of Lean error for learning"""
+        if not error_message:
+            return "unknown"
+        error_lower = error_message.lower()
+        
+        if "unknown identifier" in error_lower:
+            return "unknown_identifier"
+        elif "type mismatch" in error_lower:
+            return "type_mismatch"
+        elif "tactic failed" in error_lower:
+            return "tactic_failed"
+        elif "assumption" in error_lower:
+            return "assumption_failed"
+        elif "apply failed" in error_lower:
+            return "apply_failed"
+        else:
+            return "other_error"
     
     def _classify_theorem(self, theorem: str) -> str:
         """Classify theorem type for learning patterns"""
@@ -310,12 +441,20 @@ class FormalProofEngine:
                 temp_file = f.name
             
             try:
+                # Set up environment with Lean path
+                import copy
+                env = copy.deepcopy(os.environ)
+                lean_path = os.path.expanduser("~/.elan/bin")
+                if lean_path not in env.get("PATH", ""):
+                    env["PATH"] = f"{lean_path}:{env.get('PATH', '')}"
+                
                 # Try to check the Lean file (Lean 4 syntax)
                 result = subprocess.run(
                     ['lean', temp_file], 
                     capture_output=True, 
                     text=True, 
-                    timeout=10
+                    timeout=10,
+                    env=env
                 )
                 
                 if result.returncode == 0:
@@ -388,14 +527,33 @@ class FormalProofEngine:
     
     def get_proof_statistics(self) -> Dict:
         """Get statistics about proof attempts and learning"""
+        # Calculate tactic success rates
+        tactic_stats = []
+        for tactic in self.learned_tactics:
+            successes = tactic.get("success_count", 0)
+            failures = tactic.get("failure_count", 0)
+            total = successes + failures
+            success_rate = (successes / total) if total > 0 else 0
+            tactic_stats.append({
+                "name": tactic["name"],
+                "success_rate": success_rate,
+                "total_attempts": total,
+                "successes": successes,
+                "failures": failures
+            })
+        
+        # Get failure pattern summary
+        failure_summary = {}
+        if hasattr(self, 'failure_patterns'):
+            for pattern in self.failure_patterns:
+                error_type = pattern.get("error_type", "unknown")
+                failure_summary[error_type] = failure_summary.get(error_type, 0) + 1
+        
         return {
-            "total_patterns_learned": len(self.successful_patterns),
-            "learned_tactics": len(self.learned_tactics),
-            "most_successful_tactics": sorted(
-                self.learned_tactics, 
-                key=lambda x: x["success_count"], 
-                reverse=True
-            )[:5],
+            "total_successful_patterns": len(self.successful_patterns),
+            "total_learned_tactics": len(self.learned_tactics),
+            "most_successful_tactics": sorted(tactic_stats, key=lambda x: x["success_rate"], reverse=True)[:5],
             "theorem_types_proven": list(set(p["theorem_type"] for p in self.successful_patterns)),
+            "common_failure_types": failure_summary,
             "lean_available": self.lean_available
         }

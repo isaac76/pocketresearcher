@@ -1,0 +1,183 @@
+{
+  "learned_tactics": [
+    {
+      "name": "trivial",
+      "success_count": 2,
+      "failure_count": 3,
+      "contexts": [
+        [
+          ". State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new",
+          ". State a new fact about even numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about even numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new",
+          ". State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about even numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about even numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new"
+        ],
+        [
+          ". State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new",
+          ". State a new fact about even numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about even numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new",
+          ". State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about even numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about even numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new"
+        ],
+        [
+          ". State a new fact about even numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about even numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new",
+          ". State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about even numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about even numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new",
+          ". State a new fact about odd numbers or their sums:. State a new fact about even numbers or their sums:. State a new fact about even numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about even numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about even numbers or their sums:. State a new"
+        ]
+      ]
+    },
+    {
+      "name": "simp",
+      "success_count": 0,
+      "failure_count": 3,
+      "contexts": [
+        [
+          ". State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new",
+          ". State a new fact about even numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about even numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new",
+          ". State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about even numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about even numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new"
+        ]
+      ]
+    },
+    {
+      "name": "rfl",
+      "success_count": 0,
+      "failure_count": 3,
+      "contexts": [
+        [
+          ". State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new",
+          ". State a new fact about even numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about even numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new",
+          ". State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about even numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about even numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new"
+        ]
+      ]
+    },
+    {
+      "name": "assumption",
+      "success_count": 0,
+      "failure_count": 3,
+      "contexts": [
+        [
+          ". State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new",
+          ". State a new fact about even numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about even numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new",
+          ". State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about even numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about even numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new"
+        ]
+      ]
+    },
+    {
+      "name": "exact?",
+      "success_count": 0,
+      "failure_count": 3,
+      "contexts": [
+        [
+          ". State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new",
+          ". State a new fact about even numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about even numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new",
+          ". State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about even numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about even numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new"
+        ]
+      ]
+    },
+    {
+      "name": "apply?",
+      "success_count": 0,
+      "failure_count": 3,
+      "contexts": [
+        [
+          ". State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new",
+          ". State a new fact about even numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about even numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new",
+          ". State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about even numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about even numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new"
+        ]
+      ]
+    },
+    {
+      "name": "ring",
+      "success_count": 0,
+      "failure_count": 3,
+      "contexts": [
+        [
+          ". State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new",
+          ". State a new fact about even numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about even numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new",
+          ". State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about even numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about even numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new"
+        ]
+      ]
+    },
+    {
+      "name": "norm_num",
+      "success_count": 0,
+      "failure_count": 3,
+      "contexts": [
+        [
+          ". State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new",
+          ". State a new fact about even numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about even numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new",
+          ". State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about even numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about even numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new"
+        ]
+      ]
+    },
+    {
+      "name": "constructor",
+      "success_count": 0,
+      "failure_count": 3,
+      "contexts": [
+        [
+          ". State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new",
+          ". State a new fact about even numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about even numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new",
+          ". State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about even numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about even numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new"
+        ]
+      ]
+    },
+    {
+      "name": "exact Even.add ha hb",
+      "success_count": 0,
+      "failure_count": 2,
+      "contexts": [
+        [
+          ". State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new",
+          ". State a new fact about even numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about even numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new",
+          ". State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about even numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about even numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new"
+        ]
+      ]
+    },
+    {
+      "name": "apply Even.add; exact ha; exact hb",
+      "success_count": 0,
+      "failure_count": 2,
+      "contexts": [
+        [
+          ". State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new",
+          ". State a new fact about even numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about even numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new",
+          ". State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about even numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about even numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new"
+        ]
+      ]
+    },
+    {
+      "name": "simp [Even]; exact \u27e8ha.1 + hb.1, by ring\u27e9",
+      "success_count": 0,
+      "failure_count": 2,
+      "contexts": [
+        [
+          ". State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new",
+          ". State a new fact about even numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about even numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new",
+          ". State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about even numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about even numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new"
+        ]
+      ]
+    }
+  ],
+  "successful_patterns": [
+    {
+      "theorem_type": "general",
+      "successful_tactics": [
+        "trivial"
+      ],
+      "working_tactic": [
+        "trivial"
+      ],
+      "context_keywords": [],
+      "timestamp": "2025-08-12T13:40:21.530977"
+    },
+    {
+      "theorem_type": "general",
+      "successful_tactics": [
+        "trivial"
+      ],
+      "working_tactic": [
+        "trivial"
+      ],
+      "context_keywords": [],
+      "timestamp": "2025-08-12T13:41:29.659714"
+    }
+  ],
+  "failure_patterns": []
+}
