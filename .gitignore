@@ -5,7 +5,7 @@ __pycache__/
 *.pyc
 
 # Configuration files with API keys
-config.py
+config_unified.py
 
 # Jupyter and notebook files
 .ipynb_checkpoints/
