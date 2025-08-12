@@ -12,7 +12,7 @@ from typing import Dict, Any, Optional
 
 LLM_PROFILES = {
     "gemini": {
-        "api_key": "AIzaSyArlvo64uf1pxhqWnswscSYY9i-CnQsevQ",  # Your actual key
+        "api_key": "<key>",  # Your actual key
         "type": "api",
         "rate_limit": 15,
         "max_tokens": 100,
