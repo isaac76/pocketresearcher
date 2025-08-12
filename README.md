@@ -14,9 +14,47 @@ So I created a project that makes use of various open source Python libraries an
 
 Note that I used AI to help generate this project. 
 
-## LLM
+## LLM Configuration
 
-PocketResearcher uses a lightweight local language model (LLM) to generate mathematical statements, suggest possible theorems, and attempt informal and formal proofs. The LLM is not expected to solve major open problems, but it demonstrates how AI can assist in mathematical exploration and reasoning.
+PocketResearcher now supports multiple language models with automatic fallback:
+
+### Supported Models
+- **Google Gemini (default)**: High-quality API-based model with rate limiting (15 requests/minute)
+- **Microsoft Phi-2**: Local model for offline use and backup when API limits are reached
+- **GPT-2**: Alternative local model option
+
+### Configuration
+The system uses `config.py` for all settings:
+
+```python
+# LLM Selection
+DEFAULT_LLM = "gemini"        # Primary model to use
+FALLBACK_LOCAL_MODEL = "phi2" # Backup when API fails
+
+# API Keys
+GEMINI_API_KEY = "your_key_here"  # Get from Google AI Studio
+OPENAI_API_KEY = None             # Optional OpenAI integration
+
+# Rate Limiting
+GEMINI_RATE_LIMIT = 15      # Requests per minute (free tier)
+ENABLE_RATE_LIMITING = True # Automatic throttling
+```
+
+### Automatic Fallback
+- System tries Gemini first (if API key available)
+- Falls back to local Phi-2 model when:
+  - API quota exceeded
+  - Network issues
+  - Invalid API key
+- Seamless switching with no interruption
+
+### API Setup
+1. Copy configuration template: `cp config.py.sample config.py`
+2. Get a free Gemini API key from [Google AI Studio](https://aistudio.google.com/)
+3. Edit `config.py` and replace `YOUR_GEMINI_API_KEY_HERE` with your actual key
+4. System will automatically use Gemini with rate limiting
+
+**Note**: The `config.py` file is excluded from git to protect your API keys. Never commit actual API keys to version control.
 
 ## Memory
 
@@ -39,7 +77,8 @@ The project is designed to simulate the process of mathematical discovery. It ge
 ## Dependencies
 
 - Python 3.8+: Core language for the project.
-- transformers: Runs the local LLM for generating mathematical statements and proofs.
+- **google-generativeai**: Google Gemini API for high-quality text generation.
+- transformers: Local LLM support (Phi-2, GPT-2) for offline operation.
 - sympy: Symbolic mathematics, theorem generation, and proof attempts.
 - lean_dojo: Formal proof experiments and Lean theorem interaction.
 - numpy, scipy: Numerical and scientific computations.
@@ -50,9 +89,23 @@ The project is designed to simulate the process of mathematical discovery. It ge
 
 ## How to Run
 
+### Quick Start
 1. Install dependencies: `pip install -r requirements.txt`
-2. Run the main script: `python src/pocketresearcher.py`
-3. Review output in `memory.json`
+2. (Optional) Get a free Gemini API key from [Google AI Studio](https://aistudio.google.com/)
+3. Update `config.py` with your API key (or use local models only)
+4. Run the main script: `python src/pocketresearcher.py`
+5. Review output in `memory.json` and console logs
+
+### Configuration Options
+- **With Gemini API**: High-quality generation with automatic rate limiting
+- **Local only**: Works offline using Phi-2 model (no API key needed)
+- **Hybrid mode**: Starts with Gemini, falls back to local when needed
+
+### Model Selection
+Edit `config.py` to change the default model:
+```python
+DEFAULT_LLM = "gemini"  # or "phi2", "gpt2"
+```
 
 ## Expected Output
 

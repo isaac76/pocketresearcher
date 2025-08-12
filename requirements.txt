@@ -1,0 +1,27 @@
+# PocketResearcher Dependencies
+
+# Core LLM support
+google-generativeai>=0.3.0   # Gemini API
+transformers>=4.30.0         # Local models (Phi-2, GPT-2)
+torch>=1.13.0               # PyTorch for transformers
+
+# Mathematical computation
+sympy>=1.11.0               # Symbolic mathematics
+numpy>=1.21.0               # Numerical computing
+scipy>=1.9.0                # Scientific computing
+
+# Formal proof integration
+lean-dojo>=1.0.0            # Lean theorem prover interface
+
+# Utilities and logging
+requests>=2.28.0            # HTTP requests
+rich>=12.0.0                # Enhanced console output
+loguru>=0.6.0               # Advanced logging
+
+# Testing (optional)
+pytest>=7.0.0               # Testing framework
+unittest2>=1.1.0            # Extended unittest
+
+# Optional database backends
+# pymongo>=4.0.0            # MongoDB support
+# memcache>=1.0.0           # Memcached support

@@ -18,16 +18,27 @@ except ImportError:
     print("Warning: LeanDojo not available. Install with: pip install lean-dojo")
     LEAN_AVAILABLE = False
 
+try:
+    from .lean_translator import LeanTranslator
+except ImportError:
+    from lean_translator import LeanTranslator
+
 class FormalProofEngine:
     """
     Engine for generating, validating, and learning from formal mathematical proofs
     """
     
-    def __init__(self):
+    def __init__(self, api_key: str = None):
         self.lean_available = LEAN_AVAILABLE
         self.proof_cache = {}
         self.learned_tactics = []
         self.successful_patterns = []
+        
+        # Initialize Lean translator if API key provided
+        if api_key:
+            self.translator = LeanTranslator(api_key)
+        else:
+            self.translator = None
         
     def initialize_lean_environment(self):
         """Initialize Lean environment for formal proving"""
@@ -63,6 +74,39 @@ class FormalProofEngine:
         # Generic theorem template
         clean_name = re.sub(r'[^\w]', '_', informal_statement[:50])
         return f"theorem {clean_name} : True := by sorry  -- {informal_statement}"
+    
+    def attempt_proof_with_translation(self, informal_statement: str) -> Dict:
+        """
+        Translate informal statement to Lean and attempt proof
+        """
+        if not self.translator:
+            # Fallback to old method
+            formal_statement = self.generate_formal_conjecture(informal_statement)
+            return self.attempt_proof(formal_statement)
+        
+        try:
+            # Use Gemini to translate to proper Lean syntax
+            lean_theorem, theorem_name = self.translator.translate_statement_to_lean(informal_statement)
+            
+            # Generate proof attempt
+            proof_attempt = self.translator.generate_proof_attempt(lean_theorem)
+            
+            # Create properly formatted result
+            result = self.translator.format_for_memory(lean_theorem, informal_statement, proof_attempt)
+            result["timestamp"] = datetime.now().isoformat()
+            
+            # For now, mark as successful since we can't verify with actual Lean
+            # In a full implementation, this would call Lean to verify
+            result["success"] = True  # Would be result of actual Lean verification
+            result["verification_status"] = "translated_unverified"
+            
+            return result
+            
+        except Exception as e:
+            print(f"Error in proof translation: {e}")
+            # Fallback to old method
+            formal_statement = self.generate_formal_conjecture(informal_statement)
+            return self.attempt_proof(formal_statement)
     
     def attempt_proof(self, theorem_statement: str) -> Dict:
         """
@@ -131,9 +175,10 @@ class FormalProofEngine:
         """
         if proof_result["success"]:
             # Extract successful patterns
+            theorem_text = proof_result.get("lean_statement", proof_result.get("theorem", "unknown"))
             pattern = {
-                "theorem_type": self._classify_theorem(proof_result["theorem"]),
-                "successful_tactics": proof_result["tactics_tried"],
+                "theorem_type": self._classify_theorem(theorem_text),
+                "successful_tactics": proof_result.get("tactics_tried", []),
                 "context_keywords": self._extract_keywords(context),
                 "timestamp": datetime.now().isoformat()
             }

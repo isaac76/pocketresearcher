@@ -4,7 +4,16 @@
 import os
 import sys
 from datetime import datetime
-from transformers import pipeline
+
+# Add project root to path for config import
+project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, project_root)
+
+try:
+    import config
+except ImportError:
+    print("Config file not found. Please copy config_template.py to config.py")
+    sys.exit(1)
 
 # Handle imports for both direct execution and module execution
 try:
@@ -14,6 +23,7 @@ try:
     from .formal_proof_engine import FormalProofEngine
     from .breakthrough_detector import BreakthroughDetector
     from .content_filter import ContentFilter
+    from .llm_manager import LLMManager
 except ImportError:
     # Fall back to direct imports (for running from src directory)
     from memory import Memory
@@ -21,18 +31,24 @@ except ImportError:
     from formal_proof_engine import FormalProofEngine
     from breakthrough_detector import BreakthroughDetector
     from content_filter import ContentFilter
+    from llm_manager import LLMManager
 
 # ----------------------------
 # Config
 # ----------------------------
-MODEL_NAME = "microsoft/phi-2"  # Small, instruction-tuned, and CPU-friendly
+# Initialize LLM Manager with configured model
+llm_manager = LLMManager(config.DEFAULT_LLM)
+
 # Set research log path relative to the project root directory
 current_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 LOG_FILE = os.path.join(current_dir, "research_log.md")
 
+# API key for formal proof engine (if using Lean translation)
+API_KEY = config.GEMINI_API_KEY
+
 memory_store = Memory()
 proof_assistant = MathProofAssistant()
-formal_engine = FormalProofEngine()
+formal_engine = FormalProofEngine(api_key=API_KEY if config.ENABLE_LEAN_TRANSLATION else None)
 breakthrough_detector = BreakthroughDetector()
 content_filter = ContentFilter()
 
@@ -67,8 +83,8 @@ Generate a specific mathematical theorem or conjecture that could be formally pr
 
 Theorem: """
 
-    theorem_result = generator(theorem_prompt, max_new_tokens=100)[0]["generated_text"]
-    generated_theorem = theorem_result[len(theorem_prompt):].strip()
+    theorem_result = generator(theorem_prompt, max_tokens=100)
+    generated_theorem = theorem_result.replace(theorem_prompt, "").strip() if theorem_prompt in theorem_result else theorem_result.strip()
     
     # Clean up the generated theorem
     generated_theorem = generated_theorem.split('\n')[0].strip()
@@ -81,21 +97,20 @@ Theorem: """
     for i, theorem_statement in enumerate(suggested_theorems[:3]):  # Try top 3 theorems
         print(f"\n--- Theorem {i+1}: {theorem_statement} ---")
         
-        # Convert to formal statement
-        formal_statement = formal_engine.generate_formal_conjecture(theorem_statement)
-        if not formal_statement:
-            continue
-            
-        print(f"Formal statement: {formal_statement}")
-        
-        # Attempt proof
-        proof_result = formal_engine.attempt_proof(formal_statement)
+        # Use new translation method for better Lean syntax
+        proof_result = formal_engine.attempt_proof_with_translation(theorem_statement)
         proof_result["informal_statement"] = theorem_statement
         proof_result["timestamp"] = datetime.now().isoformat()
         
+        # Print the generated Lean code
+        if "lean_statement" in proof_result:
+            print(f"Lean statement: {proof_result['lean_statement']}")
+            print(f"Proof attempt: {proof_result['proof_attempt']}")
+        
         if proof_result["success"]:
-            print(f"✓ PROOF SUCCESSFUL!")
-            print(f"Proof steps: {proof_result['proof_steps']}")
+            print(f"✓ PROOF TRANSLATION SUCCESSFUL!")
+            if "proof_steps" in proof_result:
+                print(f"Proof steps: {proof_result['proof_steps']}")
             
             # BREAKTHROUGH DETECTION - Critical addition!
             significance_analysis = breakthrough_detector.analyze_proof_significance(proof_result)
@@ -154,8 +169,8 @@ FORMAL PROOF ANALYSIS:
     # Generate insights based on proof attempts
     if successful_proofs:
         insight_prompt = f"We successfully proved: {[p['informal_statement'] for p in successful_proofs]}. This suggests: "
-        insight_result = generator(insight_prompt, max_new_tokens=50)[0]["generated_text"]
-        insight = insight_result[len(insight_prompt):].strip()
+        insight_result = generator(insight_prompt, max_tokens=50)
+        insight = insight_result.replace(insight_prompt, "").strip() if insight_prompt in insight_result else insight_result.strip()
         
         if insight and len(insight) > 10:
             memory["ideas"].append(f"Proof insight: {insight}")
@@ -163,37 +178,13 @@ FORMAL PROOF ANALYSIS:
     if failed_proofs:
         # Learn from failures
         failure_prompt = f"Failed to prove: {[p['informal_statement'] for p in failed_proofs[:2]]}. Alternative approach: "
-        alternative_result = generator(failure_prompt, max_new_tokens=50)[0]["generated_text"]
-        alternative = alternative_result[len(failure_prompt):].strip()
+        alternative_result = generator(failure_prompt, max_tokens=50)
+        alternative = alternative_result.replace(failure_prompt, "").strip() if failure_prompt in alternative_result else alternative_result.strip()
         
         if alternative and len(alternative) > 10:
             memory["ideas"].append(f"Alternative approach: {alternative}")
     
     return proof_summary
-    """Extracts 'Fact:' and 'Idea:' lines from LLM output."""
-    fact, idea = None, None
-    lines = text.splitlines()
-    
-    for i, line in enumerate(lines):
-        line = line.strip()
-        if line.lower().startswith("fact:"):
-            fact = line[5:].strip()
-            # If fact is empty, try to get it from the next line
-            if not fact and i + 1 < len(lines):
-                fact = lines[i + 1].strip()
-        elif line.lower().startswith("idea:"):
-            idea = line[5:].strip()
-            # If idea is empty, try to get it from the next line
-            if not idea and i + 1 < len(lines):
-                idea = lines[i + 1].strip()
-    
-    # Clean up any remaining artifacts
-    if fact:
-        fact = fact.replace("</s>", "").strip()
-    if idea:
-        idea = idea.replace("</s>", "").strip()
-        
-    return fact, idea
 
 
 def is_novel_fact(fact, facts):
@@ -265,8 +256,14 @@ def estimate_token_count(text):
     return len(text) // 4
 
 def run_research():
-    # Load small text generator with explicit max_length to prevent overflow
-    generator = pipeline("text-generation", model=MODEL_NAME, max_new_tokens=100, max_length=2048)
+    # Use unified LLM manager
+    generator = llm_manager.generate
+    
+    # Print model info
+    model_info = llm_manager.get_model_info()
+    print(f"Using LLM: {model_info['current_model']} ({model_info['model_type']})")
+    if model_info['rate_limited']:
+        print(f"Rate limiting enabled: {config.GEMINI_RATE_LIMIT} requests/minute")
 
     # Load existing memory
     memory = memory_store.load()
@@ -325,12 +322,12 @@ def run_research():
     idea_prompt = f"Complexity theory research ideas. Previous approaches: {recent_ideas[-1] if recent_ideas else 'algorithmic methods'}. New research idea: "
 
     # Generate fact first
-    fact_result = generator(fact_prompt, max_new_tokens=80)[0]["generated_text"]
-    fact_generated = fact_result[len(fact_prompt):].strip() if fact_result.startswith(fact_prompt) else fact_result.strip()
+    fact_result = generator(fact_prompt, max_tokens=80)
+    fact_generated = fact_result.replace(fact_prompt, "").strip() if fact_prompt in fact_result else fact_result.strip()
     
     # Generate idea second  
-    idea_result = generator(idea_prompt, max_new_tokens=80)[0]["generated_text"]
-    idea_generated = idea_result[len(idea_prompt):].strip() if idea_result.startswith(idea_prompt) else idea_result.strip()
+    idea_result = generator(idea_prompt, max_tokens=80)
+    idea_generated = idea_result.replace(idea_prompt, "").strip() if idea_prompt in idea_result else idea_result.strip()
     
     # Clean up the generated content
     fact = fact_generated.split('\n')[0].strip() if fact_generated else None
@@ -440,8 +437,8 @@ def run_research():
     # Generate simpler, more effective reflection
     reflection_prompt = f"P vs NP research analysis. Recent progress: {len(memory['facts'])} facts, {len(memory['ideas'])} ideas. Key research pattern observed: "
     
-    reflection_result = generator(reflection_prompt, max_new_tokens=100)[0]["generated_text"]
-    reflection_generated = reflection_result[len(reflection_prompt):].strip() if reflection_result.startswith(reflection_prompt) else reflection_result.strip()
+    reflection_result = generator(reflection_prompt, max_tokens=100)
+    reflection_generated = reflection_result.replace(reflection_prompt, "").strip() if reflection_prompt in reflection_result else reflection_result.strip()
     
     # Create a structured insight from the generated reflection
     pattern_text = reflection_generated.split('\n')[0].strip() if reflection_generated else "Research is expanding in multiple directions"
