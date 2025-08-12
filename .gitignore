@@ -21,6 +21,7 @@ research_log.md
 # Memory backups and filter logs
 memory_backup_*.json
 filter_log_*.json
+memory-*.json
 
 # Test artifacts
 test_memory.json
@@ -33,3 +34,6 @@ analyze_techniques.py
 
 # VS Code
 .vscode/
+
+.swp
+*.swp

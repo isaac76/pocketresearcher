@@ -1,552 +1,314 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
+"""
+PocketResearcher with Integrated Unified Configuration System
 
-# pocketresearcher.py
-import os
+This version automatically configures all settings based on LLM and problem choice,
+preventing configuration errors and memory file contamination.
+
+Usage:
+    python src/pocketresearcher.py [problem] [llm]
+    
+Examples:
+    python src/pocketresearcher.py direct_proof gpt2-medium
+    python src/pocketresearcher.py p_vs_np gemini
+"""
+
 import sys
+import os
+import datetime
 import json
 from datetime import datetime
 
-# Add project root to path for config import
+# Add project root to path (since we're now in src/)
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, project_root)
 
-try:
-    import config
-except ImportError:
-    print("Config file not found. Please copy config_template.py to config.py")
-    sys.exit(1)
+from config_unified import create_config, list_available_llms, list_available_problems
 
-# Handle imports for both direct execution and module execution
-try:
-    # Try relative imports first (for python -m src.pocketresearcher)
-    from .memory import Memory
-    from .proof_assistant import MathProofAssistant
-    from .formal_proof_engine import FormalProofEngine
-    from .breakthrough_detector import BreakthroughDetector
-    from .content_filter import ContentFilter
-    from .llm_manager import LLMManager
-except ImportError:
-    # Fall back to direct imports (for running from src directory)
+def main():
+    """Main entry point with unified configuration"""
+    
+    # Parse command line arguments
+    problem = "direct_proof"  # default
+    llm = "gpt2-medium"       # default
+    
+    if len(sys.argv) >= 2:
+        problem = sys.argv[1]
+    if len(sys.argv) >= 3:
+        llm = sys.argv[2]
+    
+    # Handle help
+    if problem in ["-h", "--help", "help"]:
+        print(__doc__)
+        print(f"Available problems: {', '.join(list_available_problems())}")
+        print(f"Available LLMs: {', '.join(list_available_llms())}")
+        return
+    
+    # Create unified configuration
+    try:
+        config = create_config(llm, problem)
+        print("🔧 Unified Configuration Active")
+        print(config.summary())
+        print()
+        
+        # Run research with unified config
+        run_research_loop(config)
+        
+    except ValueError as e:
+        print(f"❌ Configuration Error: {e}")
+        print(f"Available problems: {', '.join(list_available_problems())}")
+        print(f"Available LLMs: {', '.join(list_available_llms())}")
+        return 1
+
+def run_research_loop(config):
+    """Run the main research loop with unified configuration"""
+    
+    # Import all required modules
     from memory import Memory
-    from proof_assistant import MathProofAssistant
-    from formal_proof_engine import FormalProofEngine
-    from breakthrough_detector import BreakthroughDetector
     from content_filter import ContentFilter
+    from formal_proof_engine import FormalProofEngine
+    from proof_assistant import MathProofAssistant
+    from breakthrough_detector import BreakthroughDetector
     from llm_manager import LLMManager
-
-# ----------------------------
-# Config
-# ----------------------------
-# Problem Selection (with command-line support)
-import sys
-import importlib
-
-# Default problem module
-problem_module_name = "p_vs_np"
-
-# Allow user to specify problem module as first argument
-if len(sys.argv) > 1:
-    problem_module_name = sys.argv[1].replace(".py", "")
-
-print(f"🔍 Loading problem module: {problem_module_name}")
-
-try:
-    PROBLEM = importlib.import_module(problem_module_name)
-    print(f"✅ Successfully loaded problem module: {problem_module_name}")
-    print(f"📁 Problem name: {PROBLEM.PROBLEM_NAME}")
-    print(f"💾 Memory file: {PROBLEM.MEMORY_FILE}")
-except ImportError:
-    print(f"Error: Could not import problem module '{problem_module_name}'")
-    print("Available modules: p_vs_np, direct_proof")
-    sys.exit(1)
-
-# Initialize LLM Manager with configured model
-llm_manager = LLMManager(config.DEFAULT_LLM)
-
-# Set research log path relative to the project root directory
-current_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-LOG_FILE = os.path.join(current_dir, "research_log.md")
-
-# API key for formal proof engine (if using Lean translation)
-API_KEY = config.GEMINI_API_KEY
-
-# Ensure problem memory file exists in project root
-MEMORY_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), PROBLEM.MEMORY_FILE)
-print(f"🗂️  Full memory path: {MEMORY_PATH}")
-if not os.path.exists(MEMORY_PATH):
-    print(f"📝 Creating new memory file: {MEMORY_PATH}")
-    with open(MEMORY_PATH, "w") as f:
-        json.dump({"facts": [], "ideas": [], "reflections": []}, f, indent=2)
-else:
-    print(f"🔍 Using existing memory file: {MEMORY_PATH}")
-
-memory_store = Memory({"file_path": PROBLEM.MEMORY_FILE, "backend": "file"})
-proof_assistant = MathProofAssistant()
-formal_engine = FormalProofEngine(api_key=API_KEY if config.ENABLE_LEAN_TRANSLATION else None)
-breakthrough_detector = BreakthroughDetector()
-
-# Initialize content filter with problem-specific configuration
-content_filter_config = getattr(PROBLEM, 'CONTENT_FILTER_CONFIG', None)
-content_filter = ContentFilter(config=content_filter_config)
-if content_filter_config:
-    print(f"⚙️  Using problem-specific content filter configuration")
-    print(f"   - Min mathematical relevance: {content_filter_config.get('min_mathematical_relevance', 'default')}")
-else:
-    print(f"⚙️  Using default content filter configuration")
-
-# ----------------------------
-# Append to research log
-# ----------------------------
-def log_research(step_text):
-    with open(LOG_FILE, "a") as f:
-        f.write(f"### {datetime.now().isoformat()}\n")
-        f.write(step_text.strip() + "\n\n")
-
-# ----------------------------
-# Main research loop
-# ----------------------------
-
-def generate_and_prove_theorems(memory, generator):
-    """
-    Generate formal theorems based on current knowledge and attempt to prove them
-    """
-    print("=== FORMAL THEOREM GENERATION & PROVING ===")
     
-    # Get suggestions based on what we've learned so far
-    suggested_theorems = formal_engine.suggest_next_theorems(memory)
+    print("🚀 Starting PocketResearcher v2 with Unified Configuration")
+    print(f"📁 Problem: {config.PROBLEM_NAME}")
+    print(f"🤖 LLM: {config.llm_name} ({config.LLM_TYPE})")
+    print(f"💾 Memory: {config.MEMORY_FILE}")
+    print(f"🔧 Lean Translation: {'Enabled' if config.ENABLE_LEAN_TRANSLATION else 'Disabled'}")
+    print()
     
-    # Also generate new theorem ideas based on recent facts and ideas
-    recent_knowledge = memory["facts"][-5:] + memory["ideas"][-5:]
-    
-    theorem_prompt = f"""Based on this mathematical knowledge about P vs NP:
-{' '.join(recent_knowledge)}
-
-Generate a specific mathematical theorem or conjecture that could be formally proven. State it clearly and precisely:
-
-Theorem: """
-
-    theorem_result = generator(theorem_prompt, max_tokens=100)
-    generated_theorem = theorem_result.replace(theorem_prompt, "").strip() if theorem_prompt in theorem_result else theorem_result.strip()
-    
-    # Clean up the generated theorem
-    generated_theorem = generated_theorem.split('\n')[0].strip()
-    if generated_theorem:
-        suggested_theorems.insert(0, generated_theorem)
-    
-    print(f"Attempting to prove {len(suggested_theorems)} theorems...")
-    
-    proof_results = []
-    for i, theorem_statement in enumerate(suggested_theorems[:3]):  # Try top 3 theorems
-        print(f"\n--- Theorem {i+1}: {theorem_statement} ---")
-        
-        # Use new translation method for better Lean syntax
-        proof_result = formal_engine.attempt_proof_with_translation(theorem_statement)
-        proof_result["informal_statement"] = theorem_statement
-        proof_result["timestamp"] = datetime.now().isoformat()
-        
-        # Print the generated Lean code
-        if "lean_statement" in proof_result:
-            print(f"Lean statement: {proof_result['lean_statement']}")
-            print(f"Proof attempt: {proof_result['proof_attempt']}")
-        
-        if proof_result["success"]:
-            print(f"✓ PROOF TRANSLATION SUCCESSFUL!")
-            if "proof_steps" in proof_result:
-                print(f"Proof steps: {proof_result['proof_steps']}")
-            
-            # BREAKTHROUGH DETECTION - Critical addition!
-            significance_analysis = breakthrough_detector.analyze_proof_significance(proof_result)
-            
-            if significance_analysis["is_breakthrough"]:
-                breakthrough_record = breakthrough_detector.record_breakthrough(proof_result, significance_analysis)
-                alert = breakthrough_detector.generate_breakthrough_alert(breakthrough_record)
-                print(alert)
-                
-                # Store breakthrough in memory
-                memory.setdefault("breakthroughs", []).append(breakthrough_record)
-                
-                # Log breakthrough to research log
-                log_research(f"🚨 BREAKTHROUGH DETECTED 🚨\n{alert}")
-                
-            else:
-                print(f"⚠️  Proof quality issues: {significance_analysis.get('issues', [])}")
-                print(f"Significance: {significance_analysis['significance_level']} (confidence: {significance_analysis['confidence']:.2f})")
-            
-            # Learn from successful proof
-            formal_engine.learn_from_proof(proof_result, recent_knowledge)
-            
-            # Store successful proof in memory
-            memory.setdefault("formal_proofs", []).append(proof_result)
-            
-        else:
-            print(f"✗ Proof failed: {proof_result.get('error', 'Unknown error')}")
-            print(f"Tactics tried: {proof_result['tactics_tried']}")
-            
-            # Store failed attempt for learning
-            memory.setdefault("failed_proofs", []).append(proof_result)
-        
-        proof_results.append(proof_result)
-    
-    return proof_results
-
-def enhance_research_with_proofs(memory, generator):
-    """
-    Enhanced research step that incorporates formal proof attempts
-    """
-    # Generate formal theorems and attempt proofs
-    proof_results = generate_and_prove_theorems(memory, generator)
-    
-    # Analyze what we learned from proofs
-    successful_proofs = [p for p in proof_results if p["success"]]
-    failed_proofs = [p for p in proof_results if not p["success"]]
-    
-    proof_summary = f"""
-FORMAL PROOF ANALYSIS:
-- Attempted proofs: {len(proof_results)}
-- Successful proofs: {len(successful_proofs)}
-- Failed proofs: {len(failed_proofs)}
-- Proof techniques learned: {len(formal_engine.learned_tactics)}
-"""
-    
-    # Generate insights based on proof attempts
-    if successful_proofs:
-        insight_prompt = f"We successfully proved: {[p['informal_statement'] for p in successful_proofs]}. This suggests: "
-        insight_result = generator(insight_prompt, max_tokens=50)
-        insight = insight_result.replace(insight_prompt, "").strip() if insight_prompt in insight_result else insight_result.strip()
-        
-        if insight and len(insight) > 10:
-            memory["ideas"].append(f"Proof insight: {insight}")
-    
-    if failed_proofs:
-        # Learn from failures
-        failure_prompt = f"Failed to prove: {[p['informal_statement'] for p in failed_proofs[:2]]}. Alternative approach: "
-        alternative_result = generator(failure_prompt, max_tokens=50)
-        alternative = alternative_result.replace(failure_prompt, "").strip() if failure_prompt in alternative_result else alternative_result.strip()
-        
-        if alternative and len(alternative) > 10:
-            memory["ideas"].append(f"Alternative approach: {alternative}")
-    
-    return proof_summary
-
-
-def is_novel_fact(fact, facts):
-    """Check if the fact is novel compared to previous facts."""
-    if not fact:
-        return False
-    
-    fact_lower = fact.lower()
-    # Check for exact duplicates
-    for prev_fact in facts:
-        if fact_lower == prev_fact.lower():
-            return False
-        
-        # Check for substantial overlap (simple similarity check)
-        fact_words = set(fact_lower.split())
-        prev_words = set(prev_fact.lower().split())
-        overlap = len(fact_words.intersection(prev_words))
-        total_words = len(fact_words.union(prev_words))
-        
-        # If more than 70% overlap, consider it a repeat
-        if total_words > 0 and overlap / total_words > 0.7:
-            return False
-    
-    return True
-
-def is_novel_idea(idea, ideas):
-    """Check if the idea is novel compared to previous ideas."""
-    if not idea:
-        return False
-    
-    idea_lower = idea.lower()
-    # Check for exact duplicates
-    for prev_idea in ideas:
-        if idea_lower == prev_idea.lower():
-            return False
-        
-        # Check for substantial overlap (simple similarity check)
-        idea_words = set(idea_lower.split())
-        prev_words = set(prev_idea.lower().split())
-        overlap = len(idea_words.intersection(prev_words))
-        total_words = len(idea_words.union(prev_words))
-        
-        # If more than 70% overlap, consider it a repeat
-        if total_words > 0 and overlap / total_words > 0.7:
-            return False
-    
-    return True
-
-def is_novel_fact(fact, facts):
-    """Check if the fact is novel compared to previous facts."""
-    if not fact:
-        return False
-    fact_lower = fact.lower()
-    # Check for exact duplicates and substantial overlap
-    for prev_fact in facts:
-        if fact_lower == prev_fact.lower():
-            return False
-        fact_words = set(fact_lower.split())
-        prev_words = set(prev_fact.lower().split())
-        overlap = len(fact_words.intersection(prev_words))
-        total_words = len(fact_words.union(prev_words))
-        if total_words > 0 and overlap / total_words > 0.7:
-            return False
-    return True
-
-def truncate_for_context(items, max_chars=1000):
-    """Truncate a list of items to fit within character limit, keeping most recent items."""
-    if not items:
-        return []
-    
-    # Start with most recent items and work backwards
-    truncated = []
-    total_chars = 0
-    
-    for item in reversed(items):
-        item_chars = len(str(item)) + 2  # +2 for separator
-        if total_chars + item_chars > max_chars:
-            break
-        truncated.insert(0, item)  # Insert at beginning to maintain order
-        total_chars += item_chars
-    
-    return truncated
-
-def estimate_token_count(text):
-    """Rough estimate of token count (approximately 4 chars per token)."""
-    return len(text) // 4
-
-def run_research():
-    # Use unified LLM manager
-    generator = llm_manager.generate
-    
-    # Print model info
-    model_info = llm_manager.get_model_info()
-    print(f"Using LLM: {model_info['current_model']} ({model_info['model_type']})")
-    if model_info['rate_limited']:
-        print(f"Rate limiting enabled: {config.GEMINI_RATE_LIMIT} requests/minute")
-
-    # Load existing memory
+    # Initialize all components with unified config
+    memory_store = Memory({"file_path": config.MEMORY_FILE, "backend": "file"})
     memory = memory_store.load()
     
-    # Initialize with problem-specific facts and ideas if memory is empty
-    if not memory.get("facts"):
-        memory["facts"] = PROBLEM.INITIAL_FACTS.copy()
-        print(f"🔄 Initialized facts with {len(PROBLEM.INITIAL_FACTS)} initial facts")
-    if not memory.get("ideas"):
-        memory["ideas"] = PROBLEM.INITIAL_IDEAS.copy()
-        print(f"🔄 Initialized ideas with {len(PROBLEM.INITIAL_IDEAS)} initial ideas")
+    # Validate memory file matches problem (CRITICAL FIX!)
+    validate_memory_consistency(memory, config)
     
-    # Save initial memory if we added content
-    if not memory.get("facts") or not memory.get("ideas"):
-        print(f"💾 Saving initial memory to: {MEMORY_PATH}")
+    content_filter = ContentFilter(config=config.CONTENT_FILTER_CONFIG)
+    print(f"⚙️  Content filter configured for {config.PROBLEM_DOMAIN}")
+    print(f"   - Min relevance: {config.CONTENT_FILTER_CONFIG['min_mathematical_relevance']}")
+    
+    # Initialize LLM with unified config
+    llm_manager = LLMManager(config.DEFAULT_LLM)
+    
+    # Initialize formal proof engine
+    api_key = config.GEMINI_API_KEY if config.ENABLE_LEAN_TRANSLATION else None
+    formal_engine = FormalProofEngine(api_key=api_key)
+    
+    proof_assistant = MathProofAssistant()
+    breakthrough_detector = BreakthroughDetector()
+    
+    # Initialize memory if empty or contaminated
+    if not memory.get("facts") or len(memory.get("facts", [])) == 0:
+        print("🔄 Initializing memory with problem-specific content...")
+        memory["facts"] = config.INITIAL_FACTS.copy()
+        memory["ideas"] = config.INITIAL_IDEAS.copy()
         memory_store.save(memory)
+        print(f"✅ Initialized with {len(config.INITIAL_FACTS)} facts and {len(config.INITIAL_IDEAS)} ideas")
+    
+    print(f"🗂️  Loaded memory: {len(memory.get('facts', []))} facts, {len(memory.get('ideas', []))} ideas")
+    print()
+    
+    # Main research iteration
+    try:
+        print("🔬 Running research iteration...")
+        result = run_single_research_step(memory, config, llm_manager, content_filter, 
+                                        formal_engine, proof_assistant, breakthrough_detector)
+        
+        # Save updated memory
+        memory_store.save(memory)
+        print(f"💾 Memory saved: {len(memory.get('facts', []))} facts, {len(memory.get('ideas', []))} ideas")
+        
+        # Log the result
+        log_research_step(result, config)
+        
+        print("✅ Research iteration completed successfully!")
+        
+    except Exception as e:
+        print(f"❌ Error during research: {e}")
+        import traceback
+        traceback.print_exc()
 
-    # Build prompt from memory, with aggressive truncation to stay within token limits
-    # Only use the most recent and concise reflections
-    recent_reflections = []
-    if memory.get("reflections"):
-        for reflection in memory["reflections"][-2:]:
-            # Handle both old string reflections and new structured reflections
-            if isinstance(reflection, dict):
-                insight_text = f"{reflection.get('type', 'insight')}: {reflection.get('insight', '')}"
-                if len(insight_text) < 200:
-                    recent_reflections.append(insight_text)
-            elif isinstance(reflection, str) and len(reflection) < 200:
-                recent_reflections.append(reflection)
-    reflections_text = "\n".join(recent_reflections[:1])  # Only 1 reflection max
+def validate_memory_consistency(memory, config):
+    """Validate that memory content matches the expected problem domain"""
     
-    # Truncate facts and ideas to keep most recent and important ones
-    recent_facts = truncate_for_context(memory["facts"], max_chars=400)  # Reduced
-    recent_ideas = truncate_for_context(memory["ideas"], max_chars=300)  # Reduced
+    print("🔍 Validating memory consistency...")
     
-    # Use variables to avoid potential issues with string concatenation
-    facts_str = "; ".join(recent_facts[-4:]) if recent_facts else ""  # Only last 4 facts
-    ideas_str = "; ".join(recent_ideas[-3:]) if recent_ideas else ""  # Only last 3 ideas
+    # Check for cross-contamination
+    domain_keywords = config.CONTENT_FILTER_CONFIG.get('domain_keywords', [])
+    wrong_domain_content = []
     
-    # Build prompt using f-strings with proper newlines
-    newline = "\n"
-    reflections_part = f"Recent insight: {reflections_text}{newline}" if reflections_text else ""
+    # Check facts for wrong domain content
+    for fact in memory.get('facts', []):
+        fact_lower = fact.lower()
+        
+        # Look for P vs NP content in non-P-vs-NP problems
+        if config.problem_name == 'direct_proof':
+            pnp_indicators = ['np-complete', 'polynomial time', 'sat', 'complexity theory', 'p vs np', 'p = np']
+            if any(indicator in fact_lower for indicator in pnp_indicators):
+                wrong_domain_content.append(f"Fact: {fact[:50]}...")
+        
+        # Look for number theory content in P vs NP problems
+        elif config.problem_name == 'p_vs_np':
+            number_theory_indicators = ['even number', 'odd number', '2k where k', 'divisible by 2']
+            if any(indicator in fact_lower for indicator in number_theory_indicators):
+                wrong_domain_content.append(f"Fact: {fact[:50]}...")
     
-    # Add learning context from experiments (keep recent techniques only)
-    experiments_summary = ""
-    if memory.get("experiments"):
-        recent_techniques = [exp["technique"] for exp in memory["experiments"][-3:]]  # Last 3 techniques
-        experiments_summary = f"Analyzed: {', '.join(recent_techniques)}{newline}"
+    # Check ideas for wrong domain content
+    for idea in memory.get('ideas', []):
+        idea_lower = idea.lower()
+        
+        if config.problem_name == 'direct_proof':
+            pnp_indicators = ['np-complete', 'polynomial time', 'sat', 'complexity theory']
+            if any(indicator in idea_lower for indicator in pnp_indicators):
+                wrong_domain_content.append(f"Idea: {idea[:50]}...")
     
-    # If we have no facts yet, provide some starter context
-    if not memory["facts"]:
-        context = "P vs NP is a fundamental problem in computer science. P contains problems solvable in polynomial time, NP contains problems verifiable in polynomial time."
-    else:
-        # Use truncated facts to stay within token limits
-        if len(facts_str) > 500:  # If still too long, use just the core facts
-            core_facts = [
-                "P = NP is one of the seven Millennium Prize Problems in mathematics.",
-                "P is the class of problems solvable in polynomial time by a deterministic Turing machine.",
-                "NP is the class of problems for which a solution can be verified in polynomial time by a deterministic Turing machine.",
-                "It is unknown whether P = NP or P != NP; neither has been proven."
-            ]
-            context = f"Core facts: {'; '.join(core_facts)}"
+    if wrong_domain_content:
+        print(f"⚠️  WARNING: Memory contamination detected!")
+        print(f"   Problem: {config.PROBLEM_NAME}")
+        print(f"   Memory file: {config.MEMORY_FILE}")
+        print("   Contaminated content:")
+        for content in wrong_domain_content[:3]:  # Show first 3
+            print(f"     - {content}")
+        
+        response = input("🧹 Clean memory file? (y/N): ")
+        if response.lower() == 'y':
+            clean_memory_file(memory, config)
+            print("✅ Memory cleaned!")
         else:
-            context = f"Known facts: {facts_str}"
-    
-    # Create effective prompts based on testing
-    # Use problem-specific prompts
-    fact_prompt = PROBLEM.FACT_PROMPT.format(recent_fact=recent_facts[-1] if recent_facts else 'basic mathematical facts')
-    
-    idea_prompt = PROBLEM.IDEA_PROMPT.format(recent_idea=recent_ideas[-1] if recent_ideas else 'foundational approaches')
+            print("⚠️  Continuing with contaminated memory...")
+    else:
+        print("✅ Memory content matches expected problem domain")
 
-    # Generate fact first
-    fact_result = generator(fact_prompt, max_tokens=80)
-    fact_generated = fact_result.replace(fact_prompt, "").strip() if fact_prompt in fact_result else fact_result.strip()
+def clean_memory_file(memory, config):
+    """Clean memory file and reinitialize with correct content"""
     
-    # Generate idea second  
-    idea_result = generator(idea_prompt, max_tokens=80)
-    idea_generated = idea_result.replace(idea_prompt, "").strip() if idea_prompt in idea_result else idea_result.strip()
+    # Keep only domain-appropriate content
+    clean_memory = {
+        "facts": config.INITIAL_FACTS.copy(),
+        "ideas": config.INITIAL_IDEAS.copy(),
+        "reflections": [],
+        "proofs": [],
+        "techniques": [],
+        "experiments": [],
+        "formal_proofs": []
+    }
     
-    # Clean up the generated content
-    fact = fact_generated.split('\n')[0].strip() if fact_generated else None
-    idea = idea_generated.split('\n')[0].strip() if idea_generated else None
+    # Update the memory dict in place
+    memory.clear()
+    memory.update(clean_memory)
+
+def run_single_research_step(memory, config, llm_manager, content_filter, 
+                           formal_engine, proof_assistant, breakthrough_detector):
+    """Run a single research step using unified configuration"""
     
-    # Create a combined result for logging
-    result = f"Generated Research Step:{newline}Fact: {fact}{newline}Idea: {idea}"
-    novelty = is_novel_idea(idea, memory["ideas"])
+    # Generate fact using problem-specific prompt
+    recent_facts = memory.get("facts", [])[-3:] if memory.get("facts") else []
+    recent_fact = recent_facts[-1] if recent_facts else "No previous facts"
     
-    # Add formal proof attempts every few iterations
-    formal_proof_summary = ""
-    if len(memory["facts"]) % 3 == 0:  # Every 3rd iteration, attempt formal proofs
-        formal_proof_summary = enhance_research_with_proofs(memory, generator)
-        result += f"{newline}{formal_proof_summary}"
+    fact_prompt = config.FACT_PROMPT.format(recent_fact=recent_fact)
+    fact_result = llm_manager.generate(fact_prompt, max_tokens=config.MAX_TOKENS)
+    fact = fact_result.strip().split('\n')[0] if fact_result else None
     
-    # Analyze mathematical content in the generated result
-    math_content = proof_assistant.parse_mathematical_content(result)
+    # Generate idea using problem-specific prompt  
+    recent_ideas = memory.get("ideas", [])[-3:] if memory.get("ideas") else []
+    recent_idea = recent_ideas[-1] if recent_ideas else "No previous ideas"
     
-    # Store extracted information with content filtering
-    # Store fact and idea if they are novel AND high quality
+    idea_prompt = config.IDEA_PROMPT.format(recent_idea=recent_idea)
+    idea_result = llm_manager.generate(idea_prompt, max_tokens=config.MAX_TOKENS)
+    idea = idea_result.strip().split('\n')[0] if idea_result else None
+    
+    result = f"Generated Research Step:\nFact: {fact}\nIdea: {idea}"
+    
+    # Content filtering with problem-specific config
     if fact:
         should_keep_fact, fact_reason = content_filter.should_keep_content(fact, "fact")
-        if should_keep_fact and is_novel_fact(fact, memory["facts"]):
-            memory["facts"].append(fact)
+        if should_keep_fact and is_novel_content(fact, memory.get("facts", [])):
+            memory.setdefault("facts", []).append(fact)
             print(f"✅ Added fact: {fact_reason}")
-            print(f"📈 Memory now contains {len(memory['facts'])} facts")
         else:
-            reason = fact_reason if not should_keep_fact else "Not novel"
-            print(f"❌ Rejected fact: {reason}")
+            print(f"❌ Rejected fact: {fact_reason}")
     
     if idea:
         should_keep_idea, idea_reason = content_filter.should_keep_content(idea, "idea")
-        if should_keep_idea and is_novel_idea(idea, memory["ideas"]):
-            memory["ideas"].append(idea)
+        if should_keep_idea and is_novel_content(idea, memory.get("ideas", [])):
+            memory.setdefault("ideas", []).append(idea)
             print(f"✅ Added idea: {idea_reason}")
-            print(f"📈 Memory now contains {len(memory['ideas'])} ideas")
         else:
-            reason = idea_reason if not should_keep_idea else "Not novel"
-            print(f"❌ Rejected idea: {reason}")
+            print(f"❌ Rejected idea: {idea_reason}")
     
-    # Store mathematical content if found
-    if math_content["proof_steps"]:
-        memory.setdefault("proofs", []).extend(math_content["proof_steps"])
-    if math_content["assumptions"]:
-        memory.setdefault("techniques", []).extend(math_content["assumptions"])
+    # Formal proof generation based on unified config
+    if (len(memory.get("facts", [])) % config.PROOF_GENERATION_FREQUENCY == 0 and 
+        config.ENABLE_FORMAL_PROOFS):
+        print("\n=== FORMAL THEOREM GENERATION & PROVING ===")
+        proof_results = generate_formal_proofs(memory, llm_manager, formal_engine, config)
+        memory.setdefault("formal_proofs", []).extend(proof_results)
     
-    # Analyze any mentioned proof techniques in the generated content AND stored memory
-    technique_keywords = ["diagonalization", "reduction", "induction", "contradiction", "algebraic", "geometric", "probabilistic", "quantum"]
-    existing_techniques = [exp["technique"] for exp in memory.get("experiments", [])]
-    
-    # Check both the current generation and recent memory for technique mentions
-    content_to_check = result.lower()
-    if fact:
-        content_to_check += " " + fact.lower()
-    if idea:
-        content_to_check += " " + idea.lower()
-    
-    # Also check recent facts and ideas for technique keywords
-    recent_facts = memory["facts"][-5:] if len(memory["facts"]) > 5 else memory["facts"]
-    recent_ideas = memory["ideas"][-5:] if len(memory["ideas"]) > 5 else memory["ideas"]
-    content_to_check += " " + " ".join(recent_facts).lower()
-    content_to_check += " " + " ".join(recent_ideas).lower()
-    
-    for keyword in technique_keywords:
-        if keyword in content_to_check and keyword not in existing_techniques:
-            technique_analysis = proof_assistant.analyze_proof_technique(keyword)
-            memory.setdefault("experiments", []).append({
-                "technique": keyword,
-                "analysis": technique_analysis["description"],
-                "limitations": technique_analysis["limitations"],
-                "timestamp": datetime.now().isoformat()
-            })
-            print(f"New technique analysis added: {keyword}")
+    return result
 
-    # Progress summary with breakthrough tracking
-    breakthrough_summary = breakthrough_detector.get_breakthrough_summary()
-    summary = (
-        f"Progress Summary ({datetime.now().isoformat()}):{newline}"
-        f"Total facts: {len(memory['facts'])}{newline}"
-        f"Total ideas: {len(memory['ideas'])}{newline}"
-        f"Total proof steps: {len(memory.get('proofs', []))}{newline}"
-        f"Formal proofs: {len(memory.get('formal_proofs', []))}{newline}"
-        f"Techniques analyzed: {len(memory.get('experiments', []))}{newline}"
-        f"Breakthrough attempts: {breakthrough_summary['total_breakthroughs_detected']}{newline}"
-        f"Highest confidence: {breakthrough_summary['highest_confidence']:.2f}{newline}"
-        f"Novelty of latest idea: {'Novel' if novelty else 'Repeat'}{newline}"
-    )
-
-    # Reflection step - generate structured insights instead of recursive reflections
-    def parse_structured_reflection(reflection_text):
-        """Parse reflection output into structured insights."""
-        insights = []
-        lines = reflection_text.split('\n')
-        for line in lines:
-            line = line.strip()
-            if ':' in line:
-                for keyword in ['Pattern:', 'Limitation:', 'Opportunity:', 'Next Step:', 'Mistake:']:
-                    if line.startswith(keyword):
-                        insight_text = line[len(keyword):].strip()
-                        if insight_text and len(insight_text) > 10:  # Avoid trivial insights
-                            insights.append({
-                                "type": keyword.replace(':', '').lower().replace(' ', '_'),
-                                "insight": insight_text[:200],  # Limit length
-                                "timestamp": datetime.now().isoformat()
-                            })
-                        break
-        return insights
-
-    # Generate simpler, more effective reflection
-    reflection_prompt = f"P vs NP research analysis. Recent progress: {len(memory['facts'])} facts, {len(memory['ideas'])} ideas. Key research pattern observed: "
+def generate_formal_proofs(memory, llm_manager, formal_engine, config):
+    """Generate formal proofs using unified configuration"""
     
-    reflection_result = generator(reflection_prompt, max_tokens=100)
-    reflection_generated = reflection_result.replace(reflection_prompt, "").strip() if reflection_prompt in reflection_result else reflection_result.strip()
+    # Generate problem-appropriate theorem statements
+    facts = memory.get("facts", [])
+    ideas = memory.get("ideas", [])
     
-    # Create a structured insight from the generated reflection
-    pattern_text = reflection_generated.split('\n')[0].strip() if reflection_generated else "Research is expanding in multiple directions"
+    if config.problem_name == "direct_proof":
+        # For direct_proof, focus on even number theorems
+        theorem_templates = [
+            "The sum of two even numbers is even",
+            "Even numbers have the form 2k where k is an integer",
+            "If n is even and m is even, then n+m is even"
+        ]
+    else:
+        # For p_vs_np, focus on complexity theory
+        theorem_templates = [
+            "P ⊆ NP by definition",
+            "SAT is NP-complete",
+            "If P = NP then all NP problems are in P"
+        ]
     
-    structured_insights = [{
-        "type": "pattern",
-        "insight": pattern_text[:200],  # Limit length
-        "timestamp": datetime.now().isoformat()
-    }]
-    if structured_insights:
-        # Limit total reflections to prevent bloat
-        if len(memory.get("reflections", [])) > 10:
-            memory["reflections"] = memory["reflections"][-5:]  # Keep only 5 most recent
+    # Use recent content to generate new theorems
+    if facts:
+        recent_context = f"Recent research: {facts[-1]}"
+        theorem_prompt = f"{recent_context}. State a new theorem about {config.PROBLEM_DOMAIN}: "
+        generated_theorem = llm_manager.generate(theorem_prompt, max_tokens=50)
+        if generated_theorem:
+            theorem_templates.insert(0, generated_theorem.strip())
+    
+    proof_results = []
+    for theorem in theorem_templates[:2]:  # Try 2 theorems
+        print(f"\n--- Attempting: {theorem} ---")
+        proof_result = formal_engine.attempt_proof_with_translation(theorem)
+        proof_result["timestamp"] = datetime.now().isoformat()
+        proof_results.append(proof_result)
         
-        memory.setdefault("reflections", []).extend(structured_insights)
-
-    # Save updates
-    print(f"💾 Saving memory with {len(memory.get('facts', []))} facts, {len(memory.get('ideas', []))} ideas to: {MEMORY_PATH}")
-    memory_store.save(memory)
+        if proof_result["success"]:
+            print(f"✓ Proof successful!")
+        else:
+            print(f"✗ Proof failed: {proof_result.get('error', 'Unknown')}")
     
-    # Format reflection summary for logging
-    reflection_summary = "Structured Insights:\n"
-    for insight in structured_insights[-3:]:  # Only show recent insights
-        reflection_summary += f"- {insight['type'].replace('_', ' ').title()}: {insight['insight']}\n"
+    return proof_results
+
+def is_novel_content(content, existing_list):
+    """Check if content is novel (simple similarity check)"""
+    content_lower = content.lower()
+    for existing in existing_list:
+        if content_lower in existing.lower() or existing.lower() in content_lower:
+            return False
+    return True
+
+def log_research_step(result, config):
+    """Log research step with timestamp"""
+    timestamp = datetime.now().isoformat()
+    log_entry = f"\n--- Research Step logged at {timestamp} ---\n{result}\n"
     
-    log_research(result + "\n" + summary + "\n" + reflection_summary)
+    log_file = f"research_log_{config.problem_name}.md"
+    with open(log_file, "a") as f:
+        f.write(log_entry)
 
-    print(f"--- New step logged at {datetime.now().isoformat()} ---")
-    print(result)
-    print(summary)
-    print(reflection_summary)
-
-# ----------------------------
 if __name__ == "__main__":
-    run_research()
-
+    exit_code = main()
+    if exit_code:
+        sys.exit(exit_code)
