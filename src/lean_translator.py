@@ -144,6 +144,7 @@ If the theorem is not provable or too complex, just return "by sorry".
             "informal_statement": informal_statement,
             "proof_attempt": proof_attempt,
             "proof_steps": proof_steps,
+            "tactics_tried": [],  # For consistency with formal_proof_engine expectations
             "verification_status": "unverified",  # Would be updated after Lean verification
             "timestamp": None  # Will be set by caller
         }

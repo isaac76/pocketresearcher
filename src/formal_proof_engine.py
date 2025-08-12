@@ -185,7 +185,8 @@ class FormalProofEngine:
             self.successful_patterns.append(pattern)
             
             # Update learned tactics frequency
-            for tactic in proof_result["tactics_tried"]:
+            tactics_tried = proof_result.get("tactics_tried", [])
+            for tactic in tactics_tried:
                 if tactic not in [t["name"] for t in self.learned_tactics]:
                     self.learned_tactics.append({
                         "name": tactic,

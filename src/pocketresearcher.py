@@ -3,6 +3,7 @@
 # pocketresearcher.py
 import os
 import sys
+import json
 from datetime import datetime
 
 # Add project root to path for config import
@@ -36,6 +37,29 @@ except ImportError:
 # ----------------------------
 # Config
 # ----------------------------
+# Problem Selection (with command-line support)
+import sys
+import importlib
+
+# Default problem module
+problem_module_name = "p_vs_np"
+
+# Allow user to specify problem module as first argument
+if len(sys.argv) > 1:
+    problem_module_name = sys.argv[1].replace(".py", "")
+
+print(f"🔍 Loading problem module: {problem_module_name}")
+
+try:
+    PROBLEM = importlib.import_module(problem_module_name)
+    print(f"✅ Successfully loaded problem module: {problem_module_name}")
+    print(f"📁 Problem name: {PROBLEM.PROBLEM_NAME}")
+    print(f"💾 Memory file: {PROBLEM.MEMORY_FILE}")
+except ImportError:
+    print(f"Error: Could not import problem module '{problem_module_name}'")
+    print("Available modules: p_vs_np, direct_proof")
+    sys.exit(1)
+
 # Initialize LLM Manager with configured model
 llm_manager = LLMManager(config.DEFAULT_LLM)
 
@@ -46,11 +70,29 @@ LOG_FILE = os.path.join(current_dir, "research_log.md")
 # API key for formal proof engine (if using Lean translation)
 API_KEY = config.GEMINI_API_KEY
 
-memory_store = Memory()
+# Ensure problem memory file exists in project root
+MEMORY_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), PROBLEM.MEMORY_FILE)
+print(f"🗂️  Full memory path: {MEMORY_PATH}")
+if not os.path.exists(MEMORY_PATH):
+    print(f"📝 Creating new memory file: {MEMORY_PATH}")
+    with open(MEMORY_PATH, "w") as f:
+        json.dump({"facts": [], "ideas": [], "reflections": []}, f, indent=2)
+else:
+    print(f"🔍 Using existing memory file: {MEMORY_PATH}")
+
+memory_store = Memory({"file_path": PROBLEM.MEMORY_FILE, "backend": "file"})
 proof_assistant = MathProofAssistant()
 formal_engine = FormalProofEngine(api_key=API_KEY if config.ENABLE_LEAN_TRANSLATION else None)
 breakthrough_detector = BreakthroughDetector()
-content_filter = ContentFilter()
+
+# Initialize content filter with problem-specific configuration
+content_filter_config = getattr(PROBLEM, 'CONTENT_FILTER_CONFIG', None)
+content_filter = ContentFilter(config=content_filter_config)
+if content_filter_config:
+    print(f"⚙️  Using problem-specific content filter configuration")
+    print(f"   - Min mathematical relevance: {content_filter_config.get('min_mathematical_relevance', 'default')}")
+else:
+    print(f"⚙️  Using default content filter configuration")
 
 # ----------------------------
 # Append to research log
@@ -233,6 +275,23 @@ def is_novel_idea(idea, ideas):
     
     return True
 
+def is_novel_fact(fact, facts):
+    """Check if the fact is novel compared to previous facts."""
+    if not fact:
+        return False
+    fact_lower = fact.lower()
+    # Check for exact duplicates and substantial overlap
+    for prev_fact in facts:
+        if fact_lower == prev_fact.lower():
+            return False
+        fact_words = set(fact_lower.split())
+        prev_words = set(prev_fact.lower().split())
+        overlap = len(fact_words.intersection(prev_words))
+        total_words = len(fact_words.union(prev_words))
+        if total_words > 0 and overlap / total_words > 0.7:
+            return False
+    return True
+
 def truncate_for_context(items, max_chars=1000):
     """Truncate a list of items to fit within character limit, keeping most recent items."""
     if not items:
@@ -267,6 +326,19 @@ def run_research():
 
     # Load existing memory
     memory = memory_store.load()
+    
+    # Initialize with problem-specific facts and ideas if memory is empty
+    if not memory.get("facts"):
+        memory["facts"] = PROBLEM.INITIAL_FACTS.copy()
+        print(f"🔄 Initialized facts with {len(PROBLEM.INITIAL_FACTS)} initial facts")
+    if not memory.get("ideas"):
+        memory["ideas"] = PROBLEM.INITIAL_IDEAS.copy()
+        print(f"🔄 Initialized ideas with {len(PROBLEM.INITIAL_IDEAS)} initial ideas")
+    
+    # Save initial memory if we added content
+    if not memory.get("facts") or not memory.get("ideas"):
+        print(f"💾 Saving initial memory to: {MEMORY_PATH}")
+        memory_store.save(memory)
 
     # Build prompt from memory, with aggressive truncation to stay within token limits
     # Only use the most recent and concise reflections
@@ -317,9 +389,10 @@ def run_research():
             context = f"Known facts: {facts_str}"
     
     # Create effective prompts based on testing
-    fact_prompt = f"P vs NP complexity theory. Recent research: {recent_facts[-1] if recent_facts else 'P and NP are complexity classes'}. New fact: "
+    # Use problem-specific prompts
+    fact_prompt = PROBLEM.FACT_PROMPT.format(recent_fact=recent_facts[-1] if recent_facts else 'basic mathematical facts')
     
-    idea_prompt = f"Complexity theory research ideas. Previous approaches: {recent_ideas[-1] if recent_ideas else 'algorithmic methods'}. New research idea: "
+    idea_prompt = PROBLEM.IDEA_PROMPT.format(recent_idea=recent_ideas[-1] if recent_ideas else 'foundational approaches')
 
     # Generate fact first
     fact_result = generator(fact_prompt, max_tokens=80)
@@ -353,6 +426,7 @@ def run_research():
         if should_keep_fact and is_novel_fact(fact, memory["facts"]):
             memory["facts"].append(fact)
             print(f"✅ Added fact: {fact_reason}")
+            print(f"📈 Memory now contains {len(memory['facts'])} facts")
         else:
             reason = fact_reason if not should_keep_fact else "Not novel"
             print(f"❌ Rejected fact: {reason}")
@@ -362,6 +436,7 @@ def run_research():
         if should_keep_idea and is_novel_idea(idea, memory["ideas"]):
             memory["ideas"].append(idea)
             print(f"✅ Added idea: {idea_reason}")
+            print(f"📈 Memory now contains {len(memory['ideas'])} ideas")
         else:
             reason = idea_reason if not should_keep_idea else "Not novel"
             print(f"❌ Rejected idea: {reason}")
@@ -456,6 +531,7 @@ def run_research():
         memory.setdefault("reflections", []).extend(structured_insights)
 
     # Save updates
+    print(f"💾 Saving memory with {len(memory.get('facts', []))} facts, {len(memory.get('ideas', []))} ideas to: {MEMORY_PATH}")
     memory_store.save(memory)
     
     # Format reflection summary for logging

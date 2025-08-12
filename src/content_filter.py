@@ -13,11 +13,25 @@ class ContentFilter:
     Advanced content filtering system to maintain high-quality mathematical knowledge
     """
     
-    def __init__(self):
+    def __init__(self, config=None):
+        # Default configuration
+        default_config = {
+            "min_mathematical_relevance": 0.3,
+            "min_length": 15,
+            "max_length": 500,
+            "allow_simple_statements": False,
+            "domain_keywords": []
+        }
+        
+        # Merge with provided config
+        if config:
+            default_config.update(config)
+        self.config = default_config
+        
         self.quality_thresholds = {
-            "min_fact_length": 10,
-            "max_fact_length": 500,
-            "min_idea_length": 15,
+            "min_fact_length": self.config["min_length"],
+            "max_fact_length": self.config["max_length"],
+            "min_idea_length": self.config["min_length"],
             "max_idea_length": 1000,
             "min_mathematical_relevance": 0.3
         }
@@ -49,14 +63,15 @@ class ContentFilter:
             r"^\([0-9]+\)\.$",  # Just numbered items
         ]
         
-        # Mathematical relevance keywords
-        self.math_keywords = [
+        # Mathematical relevance keywords (use config-specific keywords if provided)
+        default_math_keywords = [
             "polynomial", "exponential", "algorithm", "complexity", "NP", "P=NP", 
             "SAT", "reduction", "proof", "theorem", "diagonalization", "circuit",
             "quantum", "probabilistic", "geometric", "algebraic", "computational",
             "turing machine", "decidable", "completeness", "hierarchy", "oracle",
             "lower bound", "upper bound", "verification", "satisfiability"
         ]
+        self.math_keywords = self.config.get("math_keywords", default_math_keywords)
         
         # Content categories for filtering
         self.content_categories = {
@@ -156,7 +171,7 @@ class ContentFilter:
         
         # Check mathematical relevance
         relevance = self.calculate_mathematical_relevance(text)
-        if relevance < self.quality_thresholds["min_mathematical_relevance"]:
+        if relevance < self.config["min_mathematical_relevance"]:
             return False, f"Low mathematical relevance: {relevance:.2f}"
             
         return True, f"Quality content (relevance: {relevance:.2f})"

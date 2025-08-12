@@ -20,8 +20,18 @@ class MemoryBackend:
 class Memory:
     def __init__(self, config: Optional[dict] = None):
         self.backend = config.get("backend", MemoryBackend.FILE) if config else MemoryBackend.FILE
-        # Set memory.json path relative to the project root directory
-        self.file_path = self._get_memory_path()
+        # Use configured file path or default to memory.json
+        if config and "file_path" in config:
+            # If relative path, make it relative to project root
+            configured_path = config["file_path"]
+            if not os.path.isabs(configured_path):
+                project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+                self.file_path = os.path.join(project_root, configured_path)
+            else:
+                self.file_path = configured_path
+        else:
+            # Fall back to default memory.json path
+            self.file_path = self._get_memory_path()
         self.mongo_uri = config.get("mongo_uri") if config else None
         self.mongo_db = config.get("mongo_db", "pocketresearcher") if config else "pocketresearcher"
         self.mongo_collection = config.get("mongo_collection", "memory") if config else "memory"
