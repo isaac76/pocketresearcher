@@ -293,23 +293,26 @@ class FormalProofEngine:
         try:
             # Create a temporary Lean file with the proof
             with tempfile.NamedTemporaryFile(mode='w', suffix='.lean', delete=False) as f:
-                # Write a minimal Lean file with the theorem
-                lean_content = f"""-- Auto-generated proof test
-{theorem_statement}
-"""
-                # If proof_attempt doesn't already contain the theorem, append it
-                if 'by' not in proof_attempt:
-                    lean_content = lean_content.replace('by sorry', f'by {proof_attempt}')
+                # Write a complete Lean file
+                if ':=' in theorem_statement and 'by' in theorem_statement:
+                    # Already a complete theorem
+                    lean_content = f"-- Auto-generated proof test\n{theorem_statement}\n"
                 else:
-                    lean_content = proof_attempt
+                    # Need to construct the full theorem
+                    if ':' in theorem_statement and not ':=' in theorem_statement:
+                        # Add the proof part
+                        lean_content = f"-- Auto-generated proof test\n{theorem_statement} := {proof_attempt}\n"
+                    else:
+                        # Assume it's just the theorem name, create a simple structure
+                        lean_content = f"-- Auto-generated proof test\n{theorem_statement}\n"
                 
                 f.write(lean_content)
                 temp_file = f.name
             
             try:
-                # Try to check the Lean file
+                # Try to check the Lean file (Lean 4 syntax)
                 result = subprocess.run(
-                    ['lean', '--check', temp_file], 
+                    ['lean', temp_file], 
                     capture_output=True, 
                     text=True, 
                     timeout=10

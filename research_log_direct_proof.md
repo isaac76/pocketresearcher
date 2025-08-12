@@ -173,3 +173,28 @@ Idea: Let S_n be the sum of the first n odd numbers. Prove that S_n is always gr
 Generated Research Step:
 Fact: The sum of any two even numbers is always an even number.
 Idea: * **Even numbers and prime factorization:** Explore properties of even numbers based on their prime factorization.  Every even number has at least one factor of 2.  Investigate relationships between the exponent of 2 in the prime factorization and other properties of the even number (e.g., number of divisors, sum of divisors, etc.). You could look at the distribution of even numbers with a specific power of 2 in their factorization.
+
+--- Research Step logged at 2025-08-12T11:04:03.105502 ---
+Generated Research Step:
+Fact: The internet has changed the way we work by enabling us to access information from anywhere
+Idea: What is the new idea for proving properties of even numbers: To prove that the sum of two even numbers is even we can try to form an algebraic expression.
+
+--- Research Step logged at 2025-08-12T11:04:49.345962 ---
+Generated Research Step:
+Fact: Even numbers are integers that are divisible by 2. For example, 2, 4, 6, 8,... are even numbers.
+Idea: 2 is an even number, so 2+2 = 4 is also an even number. If we have two odd numbers, for example, 1 and 3, when we add them, we get 4, which is an even number. The sum of two even numbers or two odd numbers is always an even number. The main idea behind this proof is that any even number can be written as 2 multiplied by another number. For example, 6 can be written as 2 x 3. Similarly, 4 can
+
+--- Research Step logged at 2025-08-12T11:07:32.873092 ---
+Generated Research Step:
+Fact: For example, the sum of all even numbers from 0 to 4 is 2(0)+2(1)+2(2)+2(3)+2(4) = 20.
+Idea: 2 is an even number, so 2+2 = 4 is also an even number. If we have two odd numbers, for example, 1 and 3, when we add them, we get 4, which is an even number. The sum of two even numbers or two odd numbers is always an even number. The main idea behind this proof is that any even number can be written as 2 multiplied by another number. For example, 6 can be written as 2 x 3. Similarly, 4 can
+
+--- Research Step logged at 2025-08-12T11:38:04.743001 ---
+Generated Research Step:
+Fact: $$\end{align}$ The sum of even numbers from 0 to 4 is 2(0)+2(1)+2(2)+2(3)+2(4) = 20.. State a new fact about even numbers or their sums:
+Idea: Let's also take a function that does a list multiplication by two. We will take a list of the numbers of two, and multiply them by a 2.
+
+--- Research Step logged at 2025-08-12T11:39:09.798633 ---
+Generated Research Step:
+Fact: $A \times a$ is a new fact about even numbers (or their sums) $and a new fact about even numbers (or their sums) $$\end{align}$$
+Idea: Let's combine a formula that can be found in a list. How to do it: If you have a list of two numbers that are the same size, you can add them together. This is how you can prove that a number is even if it is only a one. Suppose we add two 2's together to find a number that is even, even if it is a number that is even. Now let's take a function that does a list multiplication by two. This is how we can

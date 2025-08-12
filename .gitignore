@@ -37,3 +37,5 @@ analyze_techniques.py
 
 .swp
 *.swp
+
+*.lean
