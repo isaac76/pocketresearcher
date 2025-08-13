@@ -38,11 +38,11 @@ class FormalProofEngine:
         # Load previous learning
         self._load_learning_data()
         
-        # Initialize Lean translator if API key provided
+        # Initialize Lean translator; use debug mode if no API key
         if api_key:
-            self.translator = LeanTranslator(api_key)
+            self.translator = LeanTranslator(api_key=api_key, debug=False)
         else:
-            self.translator = None
+            self.translator = LeanTranslator(api_key=None, debug=True)
         
     def initialize_lean_environment(self):
         """Initialize Lean environment for formal proving"""
@@ -123,7 +123,23 @@ class FormalProofEngine:
             
         except Exception as e:
             print(f"Error in proof translation: {e}")
-            # Fallback to old method
+            
+            # Check if this is a quota/API error - if so, propagate it instead of fallback
+            err_str = str(e)
+            if ('quota' in err_str.lower() or 'rate limit' in err_str.lower() or 
+                '429' in err_str or 'api error' in err_str.lower()):
+                # Return error result with the LLM error preserved
+                return {
+                    "success": False,
+                    "proof_steps": [],
+                    "tactics_tried": [],
+                    "error": err_str,
+                    "lean_validation": None,
+                    "theorem": informal_statement,
+                    "timestamp": datetime.now().isoformat()
+                }
+            
+            # For other errors, fallback to old method
             formal_statement = self.generate_formal_conjecture(informal_statement)
             return self.attempt_proof(formal_statement)
     

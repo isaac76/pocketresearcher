@@ -95,13 +95,12 @@ class BreakthroughDetector:
         
         # Red flags for trivial proofs
         trivial_indicators = [
-            "True := by sorry",
+            "True := by sorry" in theorem,
             "apply trivial" in str(proof_steps),
             len(proof_steps) <= 1,
             "sorry" in theorem.lower(),
             theorem.count("True") > theorem.count("=")
         ]
-        
         return any(trivial_indicators)
     
     def _matches_target_problem(self, statement: str, patterns: List[str]) -> bool:
@@ -212,3 +211,16 @@ This could be a {breakthrough_record['significance']} solution!
             "highest_confidence": max([b["confidence"] for b in self.breakthrough_history], default=0.0),
             "problems_addressed": list(set([b["problem_solved"] for b in self.breakthrough_history]))
         }
+
+
+# Simple API for unit testing
+def is_breakthrough(text: str, proof_steps=None) -> bool:
+    detector = BreakthroughDetector()
+    if proof_steps is None:
+        proof_steps = ["apply trivial"]
+    result = detector.analyze_proof_significance({
+        "informal_statement": text,
+        "proof_steps": proof_steps,
+        "theorem": text
+    })
+    return result.get("is_breakthrough", False)

@@ -11,6 +11,7 @@ from typing import Dict, Any, Optional
 # =============================================================================
 
 LLM_PROFILES = {
+    # Only include LLMs that natively support Lean code generation
     "gemini": {
         "api_key": "YOUR_GEMINI_API_KEY_HERE",  # <-- Fill in your Gemini API key
         "type": "api",
@@ -18,31 +19,16 @@ LLM_PROFILES = {
         "max_tokens": 100,
         "supports_complex_reasoning": True,
         "enable_lean_translation": True,  # Can use API for Lean translation
-        "fallback_model": "gpt2-medium"
-    },
-    "gpt2": {
-        "model_path": "gpt2",
-        "type": "local",
-        "max_tokens": 100,
-        "supports_complex_reasoning": False,
-        "enable_lean_translation": False,  # Local model, use pattern matching
         "fallback_model": None
     },
-    "gpt2-medium": {
-        "model_path": "gpt2-medium",
-        "type": "local", 
+    "gpt-4": {
+        "api_key": "YOUR_OPENAI_API_KEY_HERE",  # <-- Fill in your OpenAI API key
+        "type": "api",
+        "rate_limit": 20,
         "max_tokens": 100,
         "supports_complex_reasoning": True,
-        "enable_lean_translation": False,  # Local model, use pattern matching
-        "fallback_model": "gpt2"
-    },
-    "phi2": {
-        "model_path": "microsoft/phi-2",
-        "type": "local",
-        "max_tokens": 100,
-        "supports_complex_reasoning": True,
-        "enable_lean_translation": False,  # Local model, use pattern matching
-        "fallback_model": "gpt2"
+        "enable_lean_translation": True,  # Can use API for Lean translation
+        "fallback_model": None
     }
 }
 

@@ -82,14 +82,14 @@ def run_research_loop(config):
     # Initialize all components with unified config
     memory_store = Memory({"file_path": config.MEMORY_FILE, "backend": "file"})
     memory = memory_store.load()
-    
+
     # Validate memory file matches problem (CRITICAL FIX!)
     validate_memory_consistency(memory, config)
-    
+
     content_filter = ContentFilter(config=config.CONTENT_FILTER_CONFIG)
     print(f"⚙️  Content filter configured for {config.PROBLEM_DOMAIN}")
     print(f"   - Min relevance: {config.CONTENT_FILTER_CONFIG['min_mathematical_relevance']}")
-    
+
     # Initialize LLM with unified config and pass all relevant settings
     llm_manager = LLMManager(
         config.DEFAULT_LLM,
@@ -110,14 +110,22 @@ def run_research_loop(config):
             "LOG_API_CALLS": config.LOG_API_CALLS
         }
     )
-    
+
     # Initialize formal proof engine
     api_key = config.GEMINI_API_KEY if config.ENABLE_LEAN_TRANSLATION else None
     formal_engine = FormalProofEngine(api_key=api_key)
-    
+
     proof_assistant = MathProofAssistant()
     breakthrough_detector = BreakthroughDetector()
     quality_assessor = ProofQualityAssessor()
+
+    # Special debug mode for phi2: do not update memory file, only log to console
+    phi2_debug = getattr(config.llm_profile, 'debug_only', False) or config.llm_name == 'phi2' or config.llm_profile.get('disable_memory_update', False)
+
+    # Prevent any modifications if memory is marked complete
+    if memory.get("complete", False):
+        print("🚩 Problem is marked as complete. No further changes will be made to the database.")
+        return
     
     # Initialize memory if empty or contaminated
     if not memory.get("facts") or len(memory.get("facts", [])) == 0:
@@ -135,16 +143,24 @@ def run_research_loop(config):
         print("🔬 Running research iteration...")
         result = run_single_research_step(memory, config, llm_manager, content_filter, 
                                         formal_engine, proof_assistant, breakthrough_detector, quality_assessor)
-        
-        # Save updated memory
-        memory_store.save(memory)
-        print(f"💾 Memory saved: {len(memory.get('facts', []))} facts, {len(memory.get('ideas', []))} ideas")
-        
-        # Log the result
-        log_research_step(result, config)
-        
-        print("✅ Research iteration completed successfully!")
-        
+
+        # Check if research step failed due to LLM quota errors
+        if "LLM quota/API error" in result:
+            print("❌ Research iteration failed due to LLM quota/API errors.")
+            return
+
+        if phi2_debug:
+            print("[phi2 debug mode] Results (not saved to memory file):")
+            print(result)
+            print(f"[phi2 debug mode] Would have saved: {len(memory.get('facts', []))} facts, {len(memory.get('ideas', []))} ideas")
+        else:
+            # Save updated memory
+            memory_store.save(memory)
+            print(f"💾 Memory saved: {len(memory.get('facts', []))} facts, {len(memory.get('ideas', []))} ideas")
+            # Log the result
+            log_research_step(result, config)
+            print("✅ Research iteration completed successfully!")
+
     except Exception as e:
         print(f"❌ Error during research: {e}")
         import traceback
@@ -340,6 +356,11 @@ def run_single_research_step(memory, config, llm_manager, content_filter,
     if should_generate_proofs:
         print("\n=== FORMAL THEOREM GENERATION & PROVING with Quality Assessment ===")
         proof_results = generate_formal_proofs(memory, llm_manager, formal_engine, quality_assessor, config)
+        
+        # Check if proof generation failed due to LLM errors
+        if isinstance(proof_results, str) and "LLM quota/API error" in proof_results:
+            return proof_results  # Pass the error signal up to main loop
+        
         memory.setdefault("formal_proofs", []).extend(proof_results)
     
     return result
@@ -366,41 +387,62 @@ def generate_formal_proofs(memory, llm_manager, formal_engine, quality_assessor,
             "If P = NP then all NP problems are in P"
         ]
     
-    # Use recent content to generate new theorems
+    # Use recent content to generate new theorems or Lean code
     if facts:
         recent_context = f"Recent research: {facts[-1]}"
-        if config.problem_name == "direct_proof":
-            theorem_prompt = f"{recent_context}. State a new theorem specifically about even numbers, odd numbers, or their arithmetic properties: "
-        else:
-            theorem_prompt = f"{recent_context}. State a new theorem about computational complexity theory or P vs NP: "
-        generated_theorem = llm_manager.generate(theorem_prompt, max_tokens=50)
-        if generated_theorem:
-            # Filter out contaminated theorem suggestions
-            theorem_clean = generated_theorem.strip()
+        if config.ENABLE_LEAN_TRANSLATION:
+            # Prompt for Lean code directly
             if config.problem_name == "direct_proof":
-                # Reject P vs NP contamination in direct_proof
-                pnp_indicators = ['polynomial time', 'np-complete', 'complexity theory', 'p vs np', 'p = np', 'reduction', 'sat problem']
-                if any(indicator in theorem_clean.lower() for indicator in pnp_indicators):
-                    print(f"🚫 Rejected contaminated theorem: {theorem_clean[:50]}...")
-                else:
-                    theorem_templates.insert(0, theorem_clean)
+                lean_prompt = f"{recent_context}. Write a Lean theorem and proof about even numbers, odd numbers, or their arithmetic properties. Avoid trivial proofs."
             else:
-                # For p_vs_np, reject number theory contamination
-                number_theory_indicators = ['even number', 'odd number', '2k where k', 'divisible by 2']
-                if any(indicator in theorem_clean.lower() for indicator in number_theory_indicators):
-                    print(f"🚫 Rejected contaminated theorem: {theorem_clean[:50]}...")
+                lean_prompt = f"{recent_context}. Write a Lean theorem and proof about computational complexity theory or P vs NP. Avoid trivial proofs."
+            generated_lean = llm_manager.generate(lean_prompt, max_tokens=200)
+            if generated_lean:
+                theorem_templates.insert(0, generated_lean.strip())
+        else:
+            # Prompt for plain-text theorem, then translate
+            if config.problem_name == "direct_proof":
+                theorem_prompt = f"{recent_context}. State a new theorem specifically about even numbers, odd numbers, or their arithmetic properties: "
+            else:
+                theorem_prompt = f"{recent_context}. State a new theorem about computational complexity theory or P vs NP: "
+            generated_theorem = llm_manager.generate(theorem_prompt, max_tokens=50)
+            if generated_theorem:
+                theorem_clean = generated_theorem.strip()
+                if config.problem_name == "direct_proof":
+                    pnp_indicators = ['polynomial time', 'np-complete', 'complexity theory', 'p vs np', 'p = np', 'reduction', 'sat problem']
+                    if any(indicator in theorem_clean.lower() for indicator in pnp_indicators):
+                        print(f"🚫 Rejected contaminated theorem: {theorem_clean[:50]}...")
+                    else:
+                        theorem_templates.insert(0, theorem_clean)
                 else:
-                    theorem_templates.insert(0, theorem_clean)
+                    number_theory_indicators = ['even number', 'odd number', '2k where k', 'divisible by 2']
+                    if any(indicator in theorem_clean.lower() for indicator in number_theory_indicators):
+                        print(f"🚫 Rejected contaminated theorem: {theorem_clean[:50]}...")
+                    else:
+                        theorem_templates.insert(0, theorem_clean)
     
     proof_results = []
+    from src.lean_feedback_parser import LeanFeedbackParser
     for theorem in theorem_templates[:2]:  # Try 2 theorems
         print(f"\n--- Attempting: {theorem} ---")
         proof_result = formal_engine.attempt_proof_with_translation(theorem)
         proof_result["timestamp"] = datetime.now().isoformat()
-        
+
+        # Check for LLM quota/API error and stop further logging if so
+        err = proof_result.get('error', '')
+        is_llm_error = (
+            isinstance(err, str) and (
+                'quota' in err.lower() or 'rate limit' in err.lower() or '429' in err or 'api error' in err.lower()
+            )
+        )
+        if is_llm_error:
+            print(f"❌ LLM quota/API error: {err}\n⚠️  Stopping proof session. No further proof or quality logs will be shown.")
+            # Signal to main loop that we had LLM errors
+            return "LLM quota/API error detected"
+
         if proof_result["success"]:
             print(f"✅ Lean validation: SUCCESS")
-            
+
             # 🎯 NEW: Quality Assessment
             lean_code = proof_result.get("lean_code", "")
             if lean_code:
@@ -408,13 +450,17 @@ def generate_formal_proofs(memory, llm_manager, formal_engine, quality_assessor,
                     lean_code, theorem, config.problem_name
                 )
                 proof_result["quality_assessment"] = quality_info
-                
+
                 print(f"🎯 Proof Quality: {quality_info['quality_score']:.1f}/1.0")
                 print(f"💡 Assessment: {quality_info['explanation']}")
                 print(f"🔬 Mathematical Type: {quality_info['mathematical_substance']}")
-                
+
                 if quality_info["is_meaningful"]:
                     print("🏆 HIGH QUALITY: Proof shows meaningful mathematical reasoning!")
+                    # Mark database as complete if not already
+                    if not memory.get("complete", False):
+                        print("🚩 Marking problem as complete: high-quality proof found.")
+                        memory["complete"] = True
                 elif quality_info["is_placeholder"]:
                     print("⚠️  LOW QUALITY: Proof relies on placeholders or trivial tactics")
                 else:
@@ -424,16 +470,26 @@ def generate_formal_proofs(memory, llm_manager, formal_engine, quality_assessor,
         else:
             print(f"❌ Lean validation: FAILED")
             print(f"Error: {proof_result.get('error', 'Unknown')}")
-        
+
+            # Parse Lean error and add recommendations to ideas
+            lean_error = proof_result.get('error', '')
+            if lean_error:
+                parser = LeanFeedbackParser(lean_error)
+                recommendations = parser.parse()
+                actionable = [rec for rec in recommendations if rec != "No actionable feedback detected."]
+                if actionable:
+                    memory.setdefault('ideas', []).extend(actionable)
+                    print(f"💡 Added Lean feedback to ideas: {actionable}")
+
         proof_results.append(proof_result)
-            
+
         # 🎯 LEARN FROM THIS PROOF ATTEMPT
         context = facts[-3:] if len(facts) >= 3 else facts  # Use recent facts as context
         formal_engine.learn_from_proof(proof_result, context)
-        
+
         # Add successful proofs to memory for cross-validation
         memory.setdefault('formal_proofs', []).append(proof_result)
-    
+
     # 📊 Generate Quality Report
     if proof_results:
         print("\n📊 PROOF SESSION QUALITY REPORT")
@@ -451,7 +507,6 @@ def generate_formal_proofs(memory, llm_manager, formal_engine, quality_assessor,
                 print("🔬 Mathematical Reasoning Types:")
                 for substance, count in quality_report['substance_distribution'].items():
                     print(f"   • {substance.replace('_', ' ').title()}: {count}")
-    
     return proof_results
 
 def is_novel_content(content, existing_list):
