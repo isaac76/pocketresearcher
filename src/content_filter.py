@@ -294,7 +294,7 @@ class ContentFilter:
         
         return cleaned_reflections, removal_log
     
-    def filter_memory(self, memory: Dict) -> Tuple[Dict, Dict]:
+    def filter_memory(self, memory: Dict, category: str = None) -> Tuple[Dict, Dict]:
         """Filter entire memory structure and return cleaned memory + comprehensive log"""
         
         # Store original counts
@@ -309,6 +309,7 @@ class ContentFilter:
         cleaned_memory = memory.copy()
         comprehensive_log = {
             "timestamp": datetime.now().isoformat(),
+            "category": category,
             "filtering_summary": {},
             "removed_content": [],
             "statistics": {}
@@ -334,6 +335,14 @@ class ContentFilter:
             cleaned_reflections, reflection_log = self.filter_reflections(memory["reflections"])
             cleaned_memory["reflections"] = cleaned_reflections
             comprehensive_log["removed_content"].extend(reflection_log)
+        
+        # Preserve solved status and formal_proofs (don't filter these)
+        if "solved" in memory:
+            cleaned_memory["solved"] = memory["solved"]
+        if "solved_timestamp" in memory:
+            cleaned_memory["solved_timestamp"] = memory["solved_timestamp"]
+        if "formal_proofs" in memory:
+            cleaned_memory["formal_proofs"] = memory["formal_proofs"]
         
         # Update statistics
         self.filter_stats["total_content_after"] = (

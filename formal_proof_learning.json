@@ -754,26 +754,75 @@
         "proof"
       ],
       "timestamp": "2025-08-14T12:07:58.732470"
-    }
-  ],
-  "failure_patterns": [
-    {
-      "theorem_type": "general",
-      "failed_tactics": [],
-      "error_type": "unknown",
-      "context_keywords": [
-        "proof"
-      ],
-      "timestamp": "2025-08-14T12:36:30.044381"
     },
     {
       "theorem_type": "general",
-      "failed_tactics": [],
-      "error_type": "unknown",
+      "successful_tactics": [],
+      "working_tactic": [],
+      "context_keywords": [],
+      "timestamp": "2025-08-14T14:20:19.072366"
+    },
+    {
+      "theorem_type": "general",
+      "successful_tactics": [],
+      "working_tactic": [],
+      "context_keywords": [],
+      "timestamp": "2025-08-14T14:20:19.751621"
+    },
+    {
+      "theorem_type": "general",
+      "successful_tactics": [],
+      "working_tactic": [],
+      "context_keywords": [],
+      "timestamp": "2025-08-14T14:21:41.107392"
+    },
+    {
+      "theorem_type": "general",
+      "successful_tactics": [],
+      "working_tactic": [],
+      "context_keywords": [],
+      "timestamp": "2025-08-14T14:21:41.778658"
+    },
+    {
+      "theorem_type": "general",
+      "successful_tactics": [],
+      "working_tactic": [],
+      "context_keywords": [],
+      "timestamp": "2025-08-14T14:23:08.506246"
+    },
+    {
+      "theorem_type": "general",
+      "successful_tactics": [],
+      "working_tactic": [],
+      "context_keywords": [],
+      "timestamp": "2025-08-14T14:23:09.190769"
+    },
+    {
+      "theorem_type": "general",
+      "successful_tactics": [],
+      "working_tactic": [],
       "context_keywords": [
-        "proof"
+        "diagonalization",
+        "circuit",
+        "complexity",
+        "proof",
+        "theorem"
       ],
-      "timestamp": "2025-08-14T12:36:47.333468"
+      "timestamp": "2025-08-14T14:24:06.366655"
+    },
+    {
+      "theorem_type": "general",
+      "successful_tactics": [],
+      "working_tactic": [],
+      "context_keywords": [
+        "diagonalization",
+        "circuit",
+        "complexity",
+        "proof",
+        "theorem"
+      ],
+      "timestamp": "2025-08-14T14:24:07.035516"
     }
-  ]
+  ],
+  "failure_patterns": []
 }

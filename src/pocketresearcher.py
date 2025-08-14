@@ -9,7 +9,7 @@ Usage:
     python src/pocketresearcher.py [problem] [llm]
     
 Examples:
-    python src/pocketresearcher.py direct_proof gpt2-medium
+    python src/pocketresearcher.py even_numbers gpt2-medium
     python src/pocketresearcher.py p_vs_np gemini
 """
 
@@ -29,7 +29,7 @@ def main():
     """Main entry point with unified configuration"""
     
     # Parse command line arguments
-    problem = "direct_proof"  # default
+    problem = "even_numbers"  # default
     llm = "gpt2-medium"       # default
     
     if len(sys.argv) >= 2:
@@ -68,23 +68,30 @@ def run_research_loop(config):
     from content_filter import ContentFilter
     from formal_proof_engine import FormalProofEngine
     from proof_assistant import MathProofAssistant
-    from breakthrough_detector import BreakthroughDetector
+    from breakthrough_detector import BreakthroughDetector, is_breakthrough
     from quality_assessor import ProofQualityAssessor
     from llm_manager import LLMManager
     
     print("🚀 Starting PocketResearcher v2 with Unified Configuration")
     print(f"📁 Problem: {config.PROBLEM_NAME}")
     print(f"🤖 LLM: {config.llm_name} ({config.LLM_TYPE})")
-    print(f"💾 Memory: {config.MEMORY_FILE}")
+    print(f"💾 Memory: dictionary.json (category: {config.problem_name})")
     print(f"🔧 Lean Translation: {'Enabled' if config.ENABLE_LEAN_TRANSLATION else 'Disabled'}")
     print()
     
-    # Initialize all components with unified config
-    memory_store = Memory({"file_path": config.MEMORY_FILE, "backend": "file"})
-    memory = memory_store.load()
+    # Map problem names to categories for the dictionary
+    category_mapping = {
+        "direct_proof": "even_numbers",
+        "p_vs_np": "p_vs_np"
+    }
+    category = category_mapping.get(config.problem_name, config.problem_name)
+    
+    # Initialize memory with unified dictionary and category
+    memory_store = Memory({"file_path": "dictionary.json", "backend": "file"}, category=category)
+    memory = memory_store.load(category)
 
     # Validate memory file matches problem (CRITICAL FIX!)
-    validate_memory_consistency(memory, config)
+    validate_memory_consistency(memory, config, category)
 
     content_filter = ContentFilter(config=config.CONTENT_FILTER_CONFIG)
     print(f"⚙️  Content filter configured for {config.PROBLEM_DOMAIN}")
@@ -129,9 +136,17 @@ def run_research_loop(config):
     # Debug mode: do not update memory file, only log to console if debug_only is set in profile
     phi2_debug = getattr(config.llm_profile, 'debug_only', False)
 
-    # Prevent any modifications if memory is marked complete
-    if memory.get("complete", False):
-        print("🚩 Problem is marked as complete. No further changes will be made to the database.")
+    # Prevent any modifications if memory is marked complete/solved
+    if memory.get("solved", False) or memory.get("complete", False):
+        print("🚩 Problem is marked as solved/complete. No further changes will be made to the database.")
+        print("✨ Checking for reusable theorems from this solved problem...")
+        
+        # Show available theorems for reuse
+        reusable_theorems = memory_store.get_reusable_theorems()
+        if reusable_theorems:
+            print(f"📚 Found {len(reusable_theorems)} reusable theorems:")
+            for theorem in reusable_theorems:
+                print(f"   - {theorem['theorem_name']} (from {theorem['source_category']})")
         return
     
     # Initialize memory if empty or contaminated
@@ -139,7 +154,7 @@ def run_research_loop(config):
         print("🔄 Initializing memory with problem-specific content...")
         memory["facts"] = config.INITIAL_FACTS.copy()
         memory["ideas"] = config.INITIAL_IDEAS.copy()
-        memory_store.save(memory)
+        memory_store.save(memory, category)
         print(f"✅ Initialized with {len(config.INITIAL_FACTS)} facts and {len(config.INITIAL_IDEAS)} ideas")
     
     print(f"🗂️  Loaded memory: {len(memory.get('facts', []))} facts, {len(memory.get('ideas', []))} ideas")
@@ -156,13 +171,27 @@ def run_research_loop(config):
             print("❌ Research iteration failed due to LLM quota/API errors.")
             return
 
+        # Check for breakthrough - if problem is solved, mark it
+        if is_breakthrough(result):
+            print("🎉 BREAKTHROUGH DETECTED! Marking problem as solved.")
+            proof_data = None
+            
+            # Extract proof information if available
+            if "formal_proofs" in memory and memory["formal_proofs"]:
+                latest_proof = memory["formal_proofs"][-1]
+                if latest_proof.get("success", False):
+                    proof_data = latest_proof
+                    
+            memory_store.mark_problem_solved(category, proof_data)
+            print(f"✅ Problem {category} marked as solved in dictionary.json")
+
         if phi2_debug:
             print("[phi2 debug mode] Results (not saved to memory file):")
             print(result)
             print(f"[phi2 debug mode] Would have saved: {len(memory.get('facts', []))} facts, {len(memory.get('ideas', []))} ideas")
         else:
             # Save updated memory
-            memory_store.save(memory)
+            memory_store.save(memory, category)
             print(f"💾 Memory saved: {len(memory.get('facts', []))} facts, {len(memory.get('ideas', []))} ideas")
             # Log the result
             log_research_step(result, config)
@@ -173,10 +202,10 @@ def run_research_loop(config):
         import traceback
         traceback.print_exc()
 
-def validate_memory_consistency(memory, config):
+def validate_memory_consistency(memory, config, category):
     """Validate that memory content matches the expected problem domain"""
     
-    print("🔍 Validating memory consistency...")
+    print(f"🔍 Validating memory consistency for category: {category}...")
     
     # Check for cross-contamination
     domain_keywords = config.CONTENT_FILTER_CONFIG.get('domain_keywords', [])
@@ -187,58 +216,23 @@ def validate_memory_consistency(memory, config):
         fact_lower = fact.lower()
         
         # Look for P vs NP content in non-P-vs-NP problems
-        if config.problem_name == 'direct_proof':
+        if category == 'even_numbers':
             pnp_indicators = ['np-complete', 'polynomial time', 'sat', 'complexity theory', 'p vs np', 'p = np']
             if any(indicator in fact_lower for indicator in pnp_indicators):
                 wrong_domain_content.append(f"Fact: {fact[:50]}...")
         
         # Look for number theory content in P vs NP problems
-        elif config.problem_name == 'p_vs_np':
+        elif category == 'p_vs_np':
             number_theory_indicators = ['even number', 'odd number', '2k where k', 'divisible by 2']
             if any(indicator in fact_lower for indicator in number_theory_indicators):
                 wrong_domain_content.append(f"Fact: {fact[:50]}...")
     
-    # Check ideas for wrong domain content
-    for idea in memory.get('ideas', []):
-        idea_lower = idea.lower()
-        
-        if config.problem_name == 'direct_proof':
-            pnp_indicators = ['np-complete', 'polynomial time', 'sat', 'complexity theory']
-            if any(indicator in idea_lower for indicator in pnp_indicators):
-                wrong_domain_content.append(f"Idea: {idea[:50]}...")
-    
-    # Check formal proofs for wrong domain content
-    for i, proof in enumerate(memory.get('formal_proofs', [])):
-        proof_text = str(proof).lower()
-        
-        if config.problem_name == 'direct_proof':
-            pnp_indicators = ['np-complete', 'polynomial time', 'sat', 'complexity theory', 'p vs np', 'p = np', 'p ⊆ np', 'p \\u2286 np', 'p_subset_np']
-            if any(indicator in proof_text for indicator in pnp_indicators):
-                proof_name = proof.get('theorem_name', f'Proof {i}')
-                wrong_domain_content.append(f"Formal Proof: {proof_name}...")
-        
-        elif config.problem_name == 'p_vs_np':
-            number_theory_indicators = ['even number', 'odd number', '2k where k', 'divisible by 2']
-            if any(indicator in proof_text for indicator in number_theory_indicators):
-                proof_name = proof.get('theorem_name', f'Proof {i}')
-                wrong_domain_content.append(f"Formal Proof: {proof_name}...")
-    
     if wrong_domain_content:
-        print(f"⚠️  WARNING: Memory contamination detected!")
-        print(f"   Problem: {config.PROBLEM_NAME}")
-        print(f"   Memory file: {config.MEMORY_FILE}")
-        print("   Contaminated content:")
-        for content in wrong_domain_content[:3]:  # Show first 3
-            print(f"     - {content}")
-        
-        response = input("🧹 Clean memory file? (y/N): ")
-        if response.lower() == 'y':
-            clean_memory_file(memory, config)
-            print("✅ Memory cleaned!")
-        else:
-            print("⚠️  Continuing with contaminated memory...")
+        print(f"⚠️  WARNING: Found {len(wrong_domain_content)} potentially contaminated entries")
+        print("   This suggests memory file mixing between different problems.")
+        print("   The unified dictionary should prevent this in future runs.")
     else:
-        print("✅ Memory content matches expected problem domain")
+        print("✅ Memory content appears consistent with problem domain")
 
 def clean_memory_file(memory, config):
     """Clean memory file and reinitialize with correct content"""

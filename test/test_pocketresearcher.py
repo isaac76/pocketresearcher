@@ -14,15 +14,16 @@ class TestPocketResearcher(unittest.TestCase):
             "ideas": ["Idea 1", "Idea 2"],
             "reflections": ["Reflection 1"]
         }
-        self.memory_store = Memory({"file_path": self.test_memory_file, "backend": "file"})
-        self.memory_store.save(self.memory)
+        # Use test category for isolated testing
+        self.memory_store = Memory(category="test_category", config={"file_path": self.test_memory_file, "backend": "file"})
+        self.memory_store.save(self.memory, category="test_category")
 
     def tearDown(self):
         if os.path.exists(self.test_memory_file):
             os.remove(self.test_memory_file)
 
     def test_load_and_save_memory(self):
-        loaded = self.memory_store.load()
+        loaded = self.memory_store.load(category="test_category")
         self.assertEqual(loaded, self.memory)
 
     def test_novelty_detection(self):

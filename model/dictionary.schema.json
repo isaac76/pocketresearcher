@@ -1,0 +1,27 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "PocketResearcher Theorem/Proof Dictionary",
+  "type": "object",
+  "properties": {
+    "categories": {
+      "type": "object",
+      "description": "Top-level categories for mathematical domains or topics.",
+      "patternProperties": {
+        "^[a-zA-Z0-9_]+$": {
+          "type": "object",
+          "properties": {
+            "facts": { "type": "array", "items": { "type": "string" } },
+            "ideas": { "type": "array", "items": { "type": "string" } },
+            "reflections": { "type": "array", "items": { "type": "string" } },
+            "proofs": { "type": "array", "items": { "type": "object" } },
+            "techniques": { "type": "array", "items": { "type": "string" } },
+            "experiments": { "type": "array", "items": { "type": "string" } },
+            "formal_proofs": { "type": "array", "items": { "type": "object" } }
+          },
+          "required": ["facts", "ideas", "reflections", "proofs", "techniques", "experiments", "formal_proofs"]
+        }
+      }
+    }
+  },
+  "required": ["categories"]
+}
