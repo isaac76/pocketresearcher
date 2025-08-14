@@ -114,47 +114,47 @@ class FormalProofEngine:
             max_attempts = 3
             for attempt in range(max_attempts):
                 print(f"[FormalProofEngine] Proof attempt {attempt + 1}/{max_attempts}")
-                
+
                 # Use the more sophisticated pipeline method
                 translation_result = self.translator.english_to_lean_pipeline(informal_statement, previous_feedback)
-                
+
                 lean_theorem = translation_result.get("lean_statement")
                 proof_attempt = translation_result.get("proof_attempt")
-                
+
                 if not lean_theorem:
                     # Fallback to simpler method
                     lean_theorem, theorem_name = self.translator.translate_statement_to_lean(informal_statement)
                     proof_attempt = self.translator.generate_proof_attempt(lean_theorem)
-                
+
                 # Check if the theorem statement itself contains "by sorry" and fix it
                 if lean_theorem and "by sorry" in lean_theorem:
                     print(f"[FormalProofEngine] Theorem statement contains 'by sorry', requesting proper statement")
                     # Extract just the theorem declaration without the proof
                     if ":=" in lean_theorem:
                         lean_theorem = lean_theorem.split(":=")[0].strip() + " := by sorry"
-                
-                # Check if we got a meaningful proof (not just "by sorry")
-                if proof_attempt and ("by sorry" in proof_attempt and len(proof_attempt.strip()) < 20):
-                    print(f"[FormalProofEngine] Got 'by sorry', requesting better proof attempt")
+
+                # Check for trivial/incomplete proof (by sorry, by trivial, by admit, etc.)
+                if proof_attempt and self.translator.is_trivial_proof(proof_attempt):
+                    print(f"[FormalProofEngine] Got trivial/incomplete proof, requesting better proof attempt")
                     # Ask for a more complete proof
                     better_proof = self._request_complete_proof(lean_theorem, previous_feedback, previous_attempts)
-                    if better_proof:
+                    if better_proof and not self.translator.is_trivial_proof(better_proof):
                         proof_attempt = better_proof
-                
+
                 # Actually test the proof with Lean!
                 lean_validation = self.test_with_lean(lean_theorem, proof_attempt)
-                
+
                 # Create properly formatted result
                 result = self.translator.format_for_memory(lean_theorem, informal_statement, proof_attempt)
                 result["timestamp"] = datetime.now().isoformat()
                 result["attempt_number"] = attempt + 1
-                
+
                 # Use real Lean validation results
                 result["success"] = lean_validation["success"]
                 result["verification_status"] = "verified" if lean_validation["success"] else "failed"
                 result["lean_error"] = lean_validation.get("error")
                 result["lean_output"] = lean_validation.get("output")
-                
+
                 # If successful, return immediately
                 if lean_validation["success"]:
                     print(f"[FormalProofEngine] Success on attempt {attempt + 1}")

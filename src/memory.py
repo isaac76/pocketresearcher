@@ -127,17 +127,20 @@ class Memory:
             # Ensure categories structure exists
             if "categories" not in full_data:
                 full_data["categories"] = {}
-                
-            if category:
+
+            # Fallback to self.category if category not provided
+            if category is None:
+                category = self.category
+
+            # If memory is already in unified format, save directly
+            if "categories" in memory:
+                full_data = memory
+            else:
+                # Legacy save - need to specify category
+                if not category:
+                    raise ValueError("Category must be specified when saving legacy format data")
                 # Save to specific category
                 full_data["categories"][category] = memory
-            else:
-                # If memory is already in unified format, save directly
-                if "categories" in memory:
-                    full_data = memory
-                else:
-                    # Legacy save - need to specify category
-                    raise ValueError("Category must be specified when saving legacy format data")
                     
             # Write back to file
             with open(self.file_path, "w") as f:

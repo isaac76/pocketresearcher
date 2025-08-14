@@ -33,10 +33,10 @@ class TestMemory(unittest.TestCase):
         mock_mc = MagicMock()
         mock_mc.get.return_value = '{"facts": ["A fact"], "ideas": [], "reflections": [], "proofs": [], "techniques": [], "experiments": []}'
         mock_memcache.Client.return_value = mock_mc
-        mem = Memory({"backend": MemoryBackend.MEMCACHED, "memcached_host": "127.0.0.1:11211"})
-        loaded = mem.load()
+        mem = Memory(category="test_category", config={"backend": MemoryBackend.MEMCACHED, "memcached_host": "127.0.0.1:11211"})
+        loaded = mem.load(category="test_category")
         self.assertEqual(loaded["facts"], ["A fact"])
-        mem.save(self.sample_memory)
+        mem.save(self.sample_memory, category="test_category")
         mock_mc.set.assert_called()
 
 if __name__ == "__main__":

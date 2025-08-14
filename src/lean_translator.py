@@ -20,6 +20,30 @@ except ImportError:
     print("Warning: anthropic not available. Install with: pip install anthropic")
 
 class LeanTranslator:
+    def is_trivial_proof(self, proof_attempt: str) -> bool:
+        """
+        Returns True if the proof is trivial, incomplete, or non-substantive.
+        Checks for 'by trivial', 'by sorry', 'by admit', or very short proofs.
+        """
+        if not proof_attempt:
+            return True
+        proof = proof_attempt.strip().lower()
+        # Acceptable trivial patterns
+        trivial_patterns = [
+            r'^by\s+trivial\s*$',
+            r'^by\s+sorry\s*$',
+            r'^by\s+admit\s*$',
+            r'^by\s+exact\s+trivial\s*$',
+            r'^by\s+exact\s+sorry\s*$',
+            r'^by\s*$',
+        ]
+        for pat in trivial_patterns:
+            if re.match(pat, proof):
+                return True
+        # Also treat as trivial if proof is extremely short (e.g., just 'by' or one line)
+        if len(proof.splitlines()) <= 1 and len(proof) < 20:
+            return True
+        return False
     def __init__(self, api_key: str = None, debug: bool = False, input_mode: str = "auto", llm_name: str = "gemini"):
         """
         Initialize the Lean translator with Gemini or Claude Sonnet API (or other Lean-capable LLM)

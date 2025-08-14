@@ -824,5 +824,20 @@
       "timestamp": "2025-08-14T14:24:07.035516"
     }
   ],
-  "failure_patterns": []
+  "failure_patterns": [
+    {
+      "theorem_type": "complexity_class",
+      "failed_tactics": [],
+      "error_type": "unknown",
+      "context_keywords": [],
+      "timestamp": "2025-08-14T16:45:50.173686"
+    },
+    {
+      "theorem_type": "complexity_class",
+      "failed_tactics": [],
+      "error_type": "unknown",
+      "context_keywords": [],
+      "timestamp": "2025-08-14T16:46:07.895742"
+    }
+  ]
 }
