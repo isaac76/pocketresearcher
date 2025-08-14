@@ -129,13 +129,43 @@
     },
     {
       "name": "ring",
-      "success_count": 0,
+      "success_count": 6,
       "failure_count": 23,
       "contexts": [
         [
           ". State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new",
           ". State a new fact about even numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about even numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new",
           ". State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about even numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about even numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new"
+        ],
+        [
+          "(b) To compare the decimal numbers 3.724, 3.74, and 3.742, we can use the symbols <, >, or =. We can also align the decimal points and compare the digits in each place value. For example:",
+          "(a) One fact about even numbers is that their sum is always divisible by 4. Another fact is that the sum of any two even numbers is also an even number.",
+          "(b) State a new fact about odd numbers or their sums: (c) Can you find a statement that is true for both even and odd numbers?"
+        ],
+        [
+          "**Revised fact about even numbers:** The sum of any consecutive four even numbers is always divisible by 8.  Proof: Let the four consecutive even numbers be 2k, 2k+2, 2k+4, 2k+6. Their sum is 8k+12 = 4(2k+3).  This is divisible by 4, but not necessarily by 8.  However, if we consider the sum of *any* four consecutive even numbers, this will always be divisible by 8.",
+          "**New fact about even numbers:** The sum of the squares of any three consecutive even numbers is always divisible by 24.",
+          "**New fact about even numbers:** The sum of the cubes of any two consecutive even numbers is always divisible by 16."
+        ],
+        [
+          "**Revised fact about even numbers:** The sum of any consecutive four even numbers is always divisible by 8.  Proof: Let the four consecutive even numbers be 2k, 2k+2, 2k+4, 2k+6. Their sum is 8k+12 = 4(2k+3).  This is divisible by 4, but not necessarily by 8.  However, if we consider the sum of *any* four consecutive even numbers, this will always be divisible by 8.",
+          "**New fact about even numbers:** The sum of the squares of any three consecutive even numbers is always divisible by 24.",
+          "**New fact about even numbers:** The sum of the cubes of any two consecutive even numbers is always divisible by 16."
+        ],
+        [
+          "**Revised fact about even numbers:** The sum of any consecutive four even numbers is always divisible by 8.  Proof: Let the four consecutive even numbers be 2k, 2k+2, 2k+4, 2k+6. Their sum is 8k+12 = 4(2k+3).  This is divisible by 4, but not necessarily by 8.  However, if we consider the sum of *any* four consecutive even numbers, this will always be divisible by 8.",
+          "**New fact about even numbers:** The sum of the squares of any three consecutive even numbers is always divisible by 24.",
+          "**New fact about even numbers:** The sum of the cubes of any two consecutive even numbers is always divisible by 16."
+        ],
+        [
+          "**Revised fact about even numbers:** The sum of any consecutive four even numbers is always divisible by 8.  Proof: Let the four consecutive even numbers be 2k, 2k+2, 2k+4, 2k+6. Their sum is 8k+12 = 4(2k+3).  This is divisible by 4, but not necessarily by 8.  However, if we consider the sum of *any* four consecutive even numbers, this will always be divisible by 8.",
+          "**New fact about even numbers:** The sum of the squares of any three consecutive even numbers is always divisible by 24.",
+          "**New fact about even numbers:** The sum of the cubes of any two consecutive even numbers is always divisible by 16."
+        ],
+        [
+          "**Revised fact about even numbers:** The sum of any consecutive four even numbers is always divisible by 8.  Proof: Let the four consecutive even numbers be 2k, 2k+2, 2k+4, 2k+6. Their sum is 8k+12 = 4(2k+3).  This is divisible by 4, but not necessarily by 8.  However, if we consider the sum of *any* four consecutive even numbers, this will always be divisible by 8.",
+          "**New fact about even numbers:** The sum of the squares of any three consecutive even numbers is always divisible by 24.",
+          "**New fact about even numbers:** The sum of the cubes of any two consecutive even numbers is always divisible by 16."
         ]
       ]
     },
@@ -196,6 +226,238 @@
           ". State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new",
           ". State a new fact about even numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about even numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new",
           ". State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about even numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about even numbers or their sums:. State a new fact about odd numbers or their sums:. State a new fact about odd numbers or their sums:. State a new"
+        ]
+      ]
+    },
+    {
+      "name": "obtain \u27e8k, rfl\u27e9 := ha",
+      "success_count": 1,
+      "failure_count": 0,
+      "contexts": [
+        [
+          "(b) To compare the decimal numbers 3.724, 3.74, and 3.742, we can use the symbols <, >, or =. We can also align the decimal points and compare the digits in each place value. For example:",
+          "(a) One fact about even numbers is that their sum is always divisible by 4. Another fact is that the sum of any two even numbers is also an even number.",
+          "(b) State a new fact about odd numbers or their sums: (c) Can you find a statement that is true for both even and odd numbers?"
+        ]
+      ]
+    },
+    {
+      "name": "obtain \u27e8l, rfl\u27e9 := hb",
+      "success_count": 1,
+      "failure_count": 0,
+      "contexts": [
+        [
+          "(b) To compare the decimal numbers 3.724, 3.74, and 3.742, we can use the symbols <, >, or =. We can also align the decimal points and compare the digits in each place value. For example:",
+          "(a) One fact about even numbers is that their sum is always divisible by 4. Another fact is that the sum of any two even numbers is also an even number.",
+          "(b) State a new fact about odd numbers or their sums: (c) Can you find a statement that is true for both even and odd numbers?"
+        ]
+      ]
+    },
+    {
+      "name": "use k + l",
+      "success_count": 6,
+      "failure_count": 0,
+      "contexts": [
+        [
+          "(b) To compare the decimal numbers 3.724, 3.74, and 3.742, we can use the symbols <, >, or =. We can also align the decimal points and compare the digits in each place value. For example:",
+          "(a) One fact about even numbers is that their sum is always divisible by 4. Another fact is that the sum of any two even numbers is also an even number.",
+          "(b) State a new fact about odd numbers or their sums: (c) Can you find a statement that is true for both even and odd numbers?"
+        ],
+        [
+          "**Revised fact about even numbers:** The sum of any consecutive four even numbers is always divisible by 8.  Proof: Let the four consecutive even numbers be 2k, 2k+2, 2k+4, 2k+6. Their sum is 8k+12 = 4(2k+3).  This is divisible by 4, but not necessarily by 8.  However, if we consider the sum of *any* four consecutive even numbers, this will always be divisible by 8.",
+          "**New fact about even numbers:** The sum of the squares of any three consecutive even numbers is always divisible by 24.",
+          "**New fact about even numbers:** The sum of the cubes of any two consecutive even numbers is always divisible by 16."
+        ],
+        [
+          "**Revised fact about even numbers:** The sum of any consecutive four even numbers is always divisible by 8.  Proof: Let the four consecutive even numbers be 2k, 2k+2, 2k+4, 2k+6. Their sum is 8k+12 = 4(2k+3).  This is divisible by 4, but not necessarily by 8.  However, if we consider the sum of *any* four consecutive even numbers, this will always be divisible by 8.",
+          "**New fact about even numbers:** The sum of the squares of any three consecutive even numbers is always divisible by 24.",
+          "**New fact about even numbers:** The sum of the cubes of any two consecutive even numbers is always divisible by 16."
+        ],
+        [
+          "**Revised fact about even numbers:** The sum of any consecutive four even numbers is always divisible by 8.  Proof: Let the four consecutive even numbers be 2k, 2k+2, 2k+4, 2k+6. Their sum is 8k+12 = 4(2k+3).  This is divisible by 4, but not necessarily by 8.  However, if we consider the sum of *any* four consecutive even numbers, this will always be divisible by 8.",
+          "**New fact about even numbers:** The sum of the squares of any three consecutive even numbers is always divisible by 24.",
+          "**New fact about even numbers:** The sum of the cubes of any two consecutive even numbers is always divisible by 16."
+        ],
+        [
+          "**Revised fact about even numbers:** The sum of any consecutive four even numbers is always divisible by 8.  Proof: Let the four consecutive even numbers be 2k, 2k+2, 2k+4, 2k+6. Their sum is 8k+12 = 4(2k+3).  This is divisible by 4, but not necessarily by 8.  However, if we consider the sum of *any* four consecutive even numbers, this will always be divisible by 8.",
+          "**New fact about even numbers:** The sum of the squares of any three consecutive even numbers is always divisible by 24.",
+          "**New fact about even numbers:** The sum of the cubes of any two consecutive even numbers is always divisible by 16."
+        ],
+        [
+          "**Revised fact about even numbers:** The sum of any consecutive four even numbers is always divisible by 8.  Proof: Let the four consecutive even numbers be 2k, 2k+2, 2k+4, 2k+6. Their sum is 8k+12 = 4(2k+3).  This is divisible by 4, but not necessarily by 8.  However, if we consider the sum of *any* four consecutive even numbers, this will always be divisible by 8.",
+          "**New fact about even numbers:** The sum of the squares of any three consecutive even numbers is always divisible by 24.",
+          "**New fact about even numbers:** The sum of the cubes of any two consecutive even numbers is always divisible by 16."
+        ]
+      ]
+    },
+    {
+      "name": "cases ha with k hk",
+      "success_count": 5,
+      "failure_count": 0,
+      "contexts": [
+        [
+          "**Revised fact about even numbers:** The sum of any consecutive four even numbers is always divisible by 8.  Proof: Let the four consecutive even numbers be 2k, 2k+2, 2k+4, 2k+6. Their sum is 8k+12 = 4(2k+3).  This is divisible by 4, but not necessarily by 8.  However, if we consider the sum of *any* four consecutive even numbers, this will always be divisible by 8.",
+          "**New fact about even numbers:** The sum of the squares of any three consecutive even numbers is always divisible by 24.",
+          "**New fact about even numbers:** The sum of the cubes of any two consecutive even numbers is always divisible by 16."
+        ],
+        [
+          "**Revised fact about even numbers:** The sum of any consecutive four even numbers is always divisible by 8.  Proof: Let the four consecutive even numbers be 2k, 2k+2, 2k+4, 2k+6. Their sum is 8k+12 = 4(2k+3).  This is divisible by 4, but not necessarily by 8.  However, if we consider the sum of *any* four consecutive even numbers, this will always be divisible by 8.",
+          "**New fact about even numbers:** The sum of the squares of any three consecutive even numbers is always divisible by 24.",
+          "**New fact about even numbers:** The sum of the cubes of any two consecutive even numbers is always divisible by 16."
+        ],
+        [
+          "**Revised fact about even numbers:** The sum of any consecutive four even numbers is always divisible by 8.  Proof: Let the four consecutive even numbers be 2k, 2k+2, 2k+4, 2k+6. Their sum is 8k+12 = 4(2k+3).  This is divisible by 4, but not necessarily by 8.  However, if we consider the sum of *any* four consecutive even numbers, this will always be divisible by 8.",
+          "**New fact about even numbers:** The sum of the squares of any three consecutive even numbers is always divisible by 24.",
+          "**New fact about even numbers:** The sum of the cubes of any two consecutive even numbers is always divisible by 16."
+        ],
+        [
+          "**Revised fact about even numbers:** The sum of any consecutive four even numbers is always divisible by 8.  Proof: Let the four consecutive even numbers be 2k, 2k+2, 2k+4, 2k+6. Their sum is 8k+12 = 4(2k+3).  This is divisible by 4, but not necessarily by 8.  However, if we consider the sum of *any* four consecutive even numbers, this will always be divisible by 8.",
+          "**New fact about even numbers:** The sum of the squares of any three consecutive even numbers is always divisible by 24.",
+          "**New fact about even numbers:** The sum of the cubes of any two consecutive even numbers is always divisible by 16."
+        ],
+        [
+          "**Revised fact about even numbers:** The sum of any consecutive four even numbers is always divisible by 8.  Proof: Let the four consecutive even numbers be 2k, 2k+2, 2k+4, 2k+6. Their sum is 8k+12 = 4(2k+3).  This is divisible by 4, but not necessarily by 8.  However, if we consider the sum of *any* four consecutive even numbers, this will always be divisible by 8.",
+          "**New fact about even numbers:** The sum of the squares of any three consecutive even numbers is always divisible by 24.",
+          "**New fact about even numbers:** The sum of the cubes of any two consecutive even numbers is always divisible by 16."
+        ]
+      ]
+    },
+    {
+      "name": "cases hb with l hl",
+      "success_count": 5,
+      "failure_count": 0,
+      "contexts": [
+        [
+          "**Revised fact about even numbers:** The sum of any consecutive four even numbers is always divisible by 8.  Proof: Let the four consecutive even numbers be 2k, 2k+2, 2k+4, 2k+6. Their sum is 8k+12 = 4(2k+3).  This is divisible by 4, but not necessarily by 8.  However, if we consider the sum of *any* four consecutive even numbers, this will always be divisible by 8.",
+          "**New fact about even numbers:** The sum of the squares of any three consecutive even numbers is always divisible by 24.",
+          "**New fact about even numbers:** The sum of the cubes of any two consecutive even numbers is always divisible by 16."
+        ],
+        [
+          "**Revised fact about even numbers:** The sum of any consecutive four even numbers is always divisible by 8.  Proof: Let the four consecutive even numbers be 2k, 2k+2, 2k+4, 2k+6. Their sum is 8k+12 = 4(2k+3).  This is divisible by 4, but not necessarily by 8.  However, if we consider the sum of *any* four consecutive even numbers, this will always be divisible by 8.",
+          "**New fact about even numbers:** The sum of the squares of any three consecutive even numbers is always divisible by 24.",
+          "**New fact about even numbers:** The sum of the cubes of any two consecutive even numbers is always divisible by 16."
+        ],
+        [
+          "**Revised fact about even numbers:** The sum of any consecutive four even numbers is always divisible by 8.  Proof: Let the four consecutive even numbers be 2k, 2k+2, 2k+4, 2k+6. Their sum is 8k+12 = 4(2k+3).  This is divisible by 4, but not necessarily by 8.  However, if we consider the sum of *any* four consecutive even numbers, this will always be divisible by 8.",
+          "**New fact about even numbers:** The sum of the squares of any three consecutive even numbers is always divisible by 24.",
+          "**New fact about even numbers:** The sum of the cubes of any two consecutive even numbers is always divisible by 16."
+        ],
+        [
+          "**Revised fact about even numbers:** The sum of any consecutive four even numbers is always divisible by 8.  Proof: Let the four consecutive even numbers be 2k, 2k+2, 2k+4, 2k+6. Their sum is 8k+12 = 4(2k+3).  This is divisible by 4, but not necessarily by 8.  However, if we consider the sum of *any* four consecutive even numbers, this will always be divisible by 8.",
+          "**New fact about even numbers:** The sum of the squares of any three consecutive even numbers is always divisible by 24.",
+          "**New fact about even numbers:** The sum of the cubes of any two consecutive even numbers is always divisible by 16."
+        ],
+        [
+          "**Revised fact about even numbers:** The sum of any consecutive four even numbers is always divisible by 8.  Proof: Let the four consecutive even numbers be 2k, 2k+2, 2k+4, 2k+6. Their sum is 8k+12 = 4(2k+3).  This is divisible by 4, but not necessarily by 8.  However, if we consider the sum of *any* four consecutive even numbers, this will always be divisible by 8.",
+          "**New fact about even numbers:** The sum of the squares of any three consecutive even numbers is always divisible by 24.",
+          "**New fact about even numbers:** The sum of the cubes of any two consecutive even numbers is always divisible by 16."
+        ]
+      ]
+    },
+    {
+      "name": "rw [hk, hl]",
+      "success_count": 5,
+      "failure_count": 0,
+      "contexts": [
+        [
+          "**Revised fact about even numbers:** The sum of any consecutive four even numbers is always divisible by 8.  Proof: Let the four consecutive even numbers be 2k, 2k+2, 2k+4, 2k+6. Their sum is 8k+12 = 4(2k+3).  This is divisible by 4, but not necessarily by 8.  However, if we consider the sum of *any* four consecutive even numbers, this will always be divisible by 8.",
+          "**New fact about even numbers:** The sum of the squares of any three consecutive even numbers is always divisible by 24.",
+          "**New fact about even numbers:** The sum of the cubes of any two consecutive even numbers is always divisible by 16."
+        ],
+        [
+          "**Revised fact about even numbers:** The sum of any consecutive four even numbers is always divisible by 8.  Proof: Let the four consecutive even numbers be 2k, 2k+2, 2k+4, 2k+6. Their sum is 8k+12 = 4(2k+3).  This is divisible by 4, but not necessarily by 8.  However, if we consider the sum of *any* four consecutive even numbers, this will always be divisible by 8.",
+          "**New fact about even numbers:** The sum of the squares of any three consecutive even numbers is always divisible by 24.",
+          "**New fact about even numbers:** The sum of the cubes of any two consecutive even numbers is always divisible by 16."
+        ],
+        [
+          "**Revised fact about even numbers:** The sum of any consecutive four even numbers is always divisible by 8.  Proof: Let the four consecutive even numbers be 2k, 2k+2, 2k+4, 2k+6. Their sum is 8k+12 = 4(2k+3).  This is divisible by 4, but not necessarily by 8.  However, if we consider the sum of *any* four consecutive even numbers, this will always be divisible by 8.",
+          "**New fact about even numbers:** The sum of the squares of any three consecutive even numbers is always divisible by 24.",
+          "**New fact about even numbers:** The sum of the cubes of any two consecutive even numbers is always divisible by 16."
+        ],
+        [
+          "**Revised fact about even numbers:** The sum of any consecutive four even numbers is always divisible by 8.  Proof: Let the four consecutive even numbers be 2k, 2k+2, 2k+4, 2k+6. Their sum is 8k+12 = 4(2k+3).  This is divisible by 4, but not necessarily by 8.  However, if we consider the sum of *any* four consecutive even numbers, this will always be divisible by 8.",
+          "**New fact about even numbers:** The sum of the squares of any three consecutive even numbers is always divisible by 24.",
+          "**New fact about even numbers:** The sum of the cubes of any two consecutive even numbers is always divisible by 16."
+        ],
+        [
+          "**Revised fact about even numbers:** The sum of any consecutive four even numbers is always divisible by 8.  Proof: Let the four consecutive even numbers be 2k, 2k+2, 2k+4, 2k+6. Their sum is 8k+12 = 4(2k+3).  This is divisible by 4, but not necessarily by 8.  However, if we consider the sum of *any* four consecutive even numbers, this will always be divisible by 8.",
+          "**New fact about even numbers:** The sum of the squares of any three consecutive even numbers is always divisible by 24.",
+          "**New fact about even numbers:** The sum of the cubes of any two consecutive even numbers is always divisible by 16."
+        ]
+      ]
+    },
+    {
+      "name": "rw [Even.def] at hk hl \u22a2",
+      "success_count": 1,
+      "failure_count": 0,
+      "contexts": [
+        [
+          "**Revised fact about even numbers:** The sum of any consecutive four even numbers is always divisible by 8.  Proof: Let the four consecutive even numbers be 2k, 2k+2, 2k+4, 2k+6. Their sum is 8k+12 = 4(2k+3).  This is divisible by 4, but not necessarily by 8.  However, if we consider the sum of *any* four consecutive even numbers, this will always be divisible by 8.",
+          "**New fact about even numbers:** The sum of the squares of any three consecutive even numbers is always divisible by 24.",
+          "**New fact about even numbers:** The sum of the cubes of any two consecutive even numbers is always divisible by 16."
+        ]
+      ]
+    },
+    {
+      "name": "simp [hk, hl]",
+      "success_count": 3,
+      "failure_count": 0,
+      "contexts": [
+        [
+          "**Revised fact about even numbers:** The sum of any consecutive four even numbers is always divisible by 8.  Proof: Let the four consecutive even numbers be 2k, 2k+2, 2k+4, 2k+6. Their sum is 8k+12 = 4(2k+3).  This is divisible by 4, but not necessarily by 8.  However, if we consider the sum of *any* four consecutive even numbers, this will always be divisible by 8.",
+          "**New fact about even numbers:** The sum of the squares of any three consecutive even numbers is always divisible by 24.",
+          "**New fact about even numbers:** The sum of the cubes of any two consecutive even numbers is always divisible by 16."
+        ],
+        [
+          "**Revised fact about even numbers:** The sum of any consecutive four even numbers is always divisible by 8.  Proof: Let the four consecutive even numbers be 2k, 2k+2, 2k+4, 2k+6. Their sum is 8k+12 = 4(2k+3).  This is divisible by 4, but not necessarily by 8.  However, if we consider the sum of *any* four consecutive even numbers, this will always be divisible by 8.",
+          "**New fact about even numbers:** The sum of the squares of any three consecutive even numbers is always divisible by 24.",
+          "**New fact about even numbers:** The sum of the cubes of any two consecutive even numbers is always divisible by 16."
+        ],
+        [
+          "**Revised fact about even numbers:** The sum of any consecutive four even numbers is always divisible by 8.  Proof: Let the four consecutive even numbers be 2k, 2k+2, 2k+4, 2k+6. Their sum is 8k+12 = 4(2k+3).  This is divisible by 4, but not necessarily by 8.  However, if we consider the sum of *any* four consecutive even numbers, this will always be divisible by 8.",
+          "**New fact about even numbers:** The sum of the squares of any three consecutive even numbers is always divisible by 24.",
+          "**New fact about even numbers:** The sum of the cubes of any two consecutive even numbers is always divisible by 16."
+        ]
+      ]
+    },
+    {
+      "name": "rw [Even.even_iff_exists_two_mul] at hk hl \u22a2",
+      "success_count": 2,
+      "failure_count": 0,
+      "contexts": [
+        [
+          "**Revised fact about even numbers:** The sum of any consecutive four even numbers is always divisible by 8.  Proof: Let the four consecutive even numbers be 2k, 2k+2, 2k+4, 2k+6. Their sum is 8k+12 = 4(2k+3).  This is divisible by 4, but not necessarily by 8.  However, if we consider the sum of *any* four consecutive even numbers, this will always be divisible by 8.",
+          "**New fact about even numbers:** The sum of the squares of any three consecutive even numbers is always divisible by 24.",
+          "**New fact about even numbers:** The sum of the cubes of any two consecutive even numbers is always divisible by 16."
+        ],
+        [
+          "**Revised fact about even numbers:** The sum of any consecutive four even numbers is always divisible by 8.  Proof: Let the four consecutive even numbers be 2k, 2k+2, 2k+4, 2k+6. Their sum is 8k+12 = 4(2k+3).  This is divisible by 4, but not necessarily by 8.  However, if we consider the sum of *any* four consecutive even numbers, this will always be divisible by 8.",
+          "**New fact about even numbers:** The sum of the squares of any three consecutive even numbers is always divisible by 24.",
+          "**New fact about even numbers:** The sum of the cubes of any two consecutive even numbers is always divisible by 16."
+        ]
+      ]
+    },
+    {
+      "name": "simp [add_mul]",
+      "success_count": 1,
+      "failure_count": 0,
+      "contexts": [
+        [
+          "**Revised fact about even numbers:** The sum of any consecutive four even numbers is always divisible by 8.  Proof: Let the four consecutive even numbers be 2k, 2k+2, 2k+4, 2k+6. Their sum is 8k+12 = 4(2k+3).  This is divisible by 4, but not necessarily by 8.  However, if we consider the sum of *any* four consecutive even numbers, this will always be divisible by 8.",
+          "**New fact about even numbers:** The sum of the squares of any three consecutive even numbers is always divisible by 24.",
+          "**New fact about even numbers:** The sum of the cubes of any two consecutive even numbers is always divisible by 16."
+        ]
+      ]
+    },
+    {
+      "name": "rw [Even.even_iff] at hk hl \u22a2",
+      "success_count": 1,
+      "failure_count": 0,
+      "contexts": [
+        [
+          "**Revised fact about even numbers:** The sum of any consecutive four even numbers is always divisible by 8.  Proof: Let the four consecutive even numbers be 2k, 2k+2, 2k+4, 2k+6. Their sum is 8k+12 = 4(2k+3).  This is divisible by 4, but not necessarily by 8.  However, if we consider the sum of *any* four consecutive even numbers, this will always be divisible by 8.",
+          "**New fact about even numbers:** The sum of the squares of any three consecutive even numbers is always divisible by 24.",
+          "**New fact about even numbers:** The sum of the cubes of any two consecutive even numbers is always divisible by 16."
         ]
       ]
     }
@@ -328,28 +590,190 @@
       ],
       "context_keywords": [],
       "timestamp": "2025-08-13T09:56:56.242743"
+    },
+    {
+      "theorem_type": "general",
+      "successful_tactics": [],
+      "working_tactic": [],
+      "context_keywords": [],
+      "timestamp": "2025-08-13T13:49:42.256114"
+    },
+    {
+      "theorem_type": "general",
+      "successful_tactics": [],
+      "working_tactic": [],
+      "context_keywords": [],
+      "timestamp": "2025-08-13T13:56:47.161184"
+    },
+    {
+      "theorem_type": "general",
+      "successful_tactics": [],
+      "working_tactic": [],
+      "context_keywords": [],
+      "timestamp": "2025-08-13T14:00:32.577471"
+    },
+    {
+      "theorem_type": "general",
+      "successful_tactics": [],
+      "working_tactic": [],
+      "context_keywords": [],
+      "timestamp": "2025-08-13T14:05:52.393774"
+    },
+    {
+      "theorem_type": "general",
+      "successful_tactics": [],
+      "working_tactic": [],
+      "context_keywords": [],
+      "timestamp": "2025-08-13T14:47:13.915077"
+    },
+    {
+      "theorem_type": "general",
+      "successful_tactics": [],
+      "working_tactic": [],
+      "context_keywords": [],
+      "timestamp": "2025-08-13T16:08:08.605518"
+    },
+    {
+      "theorem_type": "general",
+      "successful_tactics": [],
+      "working_tactic": [
+        "obtain \u27e8k, rfl\u27e9 := ha",
+        "obtain \u27e8l, rfl\u27e9 := hb",
+        "use k + l",
+        "ring"
+      ],
+      "context_keywords": [],
+      "timestamp": "2025-08-13T16:08:09.287667"
+    },
+    {
+      "theorem_type": "general",
+      "successful_tactics": [],
+      "working_tactic": [],
+      "context_keywords": [
+        "proof"
+      ],
+      "timestamp": "2025-08-14T09:14:49.316195"
+    },
+    {
+      "theorem_type": "general",
+      "successful_tactics": [],
+      "working_tactic": [],
+      "context_keywords": [
+        "proof"
+      ],
+      "timestamp": "2025-08-14T09:14:50.072175"
+    },
+    {
+      "theorem_type": "general",
+      "successful_tactics": [],
+      "working_tactic": [],
+      "context_keywords": [
+        "proof"
+      ],
+      "timestamp": "2025-08-14T10:47:54.460026"
+    },
+    {
+      "theorem_type": "general",
+      "successful_tactics": [],
+      "working_tactic": [
+        "cases ha with k hk",
+        "cases hb with l hl",
+        "use k + l",
+        "rw [hk, hl]",
+        "ring"
+      ],
+      "context_keywords": [
+        "proof"
+      ],
+      "timestamp": "2025-08-14T11:22:38.568019"
+    },
+    {
+      "theorem_type": "general",
+      "successful_tactics": [],
+      "working_tactic": [
+        "cases ha with k hk",
+        "cases hb with l hl",
+        "use k + l",
+        "rw [hk, hl]",
+        "rw [Even.def] at hk hl \u22a2",
+        "simp [hk, hl]",
+        "ring"
+      ],
+      "context_keywords": [
+        "proof"
+      ],
+      "timestamp": "2025-08-14T11:59:44.208230"
+    },
+    {
+      "theorem_type": "general",
+      "successful_tactics": [],
+      "working_tactic": [
+        "cases ha with k hk",
+        "cases hb with l hl",
+        "use k + l",
+        "rw [hk, hl]",
+        "rw [Even.even_iff_exists_two_mul] at hk hl \u22a2",
+        "simp [hk, hl]",
+        "ring"
+      ],
+      "context_keywords": [
+        "proof"
+      ],
+      "timestamp": "2025-08-14T12:03:08.786702"
+    },
+    {
+      "theorem_type": "general",
+      "successful_tactics": [],
+      "working_tactic": [
+        "cases ha with k hk",
+        "cases hb with l hl",
+        "use k + l",
+        "rw [hk, hl]",
+        "rw [Even.even_iff_exists_two_mul] at hk hl \u22a2",
+        "simp [add_mul]",
+        "ring"
+      ],
+      "context_keywords": [
+        "proof"
+      ],
+      "timestamp": "2025-08-14T12:04:39.694752"
+    },
+    {
+      "theorem_type": "general",
+      "successful_tactics": [],
+      "working_tactic": [
+        "cases ha with k hk",
+        "cases hb with l hl",
+        "use k + l",
+        "rw [hk, hl]",
+        "rw [Even.even_iff] at hk hl \u22a2",
+        "simp [hk, hl]",
+        "ring"
+      ],
+      "context_keywords": [
+        "proof"
+      ],
+      "timestamp": "2025-08-14T12:07:58.732470"
     }
   ],
   "failure_patterns": [
     {
       "theorem_type": "general",
-      "failed_tactics": [
-        "exact Even.add ha hb",
-        "apply Even.add; exact ha; exact hb",
-        "simp [Even]; exact \u27e8ha.1 + hb.1, by ring\u27e9",
-        "trivial",
-        "simp",
-        "rfl",
-        "assumption",
-        "exact?",
-        "apply?",
-        "ring",
-        "norm_num",
-        "constructor"
-      ],
+      "failed_tactics": [],
       "error_type": "unknown",
-      "context_keywords": [],
-      "timestamp": "2025-08-13T09:57:05.218528"
+      "context_keywords": [
+        "proof"
+      ],
+      "timestamp": "2025-08-14T12:36:30.044381"
+    },
+    {
+      "theorem_type": "general",
+      "failed_tactics": [],
+      "error_type": "unknown",
+      "context_keywords": [
+        "proof"
+      ],
+      "timestamp": "2025-08-14T12:36:47.333468"
     }
   ]
 }

@@ -26,6 +26,7 @@ DEFAULT_CONFIG = {
     "LOG_API_CALLS": False
 }
 
+
 # Conditional imports based on availability
 try:
     import google.generativeai as genai
@@ -33,6 +34,13 @@ try:
 except ImportError:
     GEMINI_AVAILABLE = False
     print("Warning: google-generativeai not available. Install with: pip install google-generativeai")
+
+try:
+    import anthropic
+    CLAUDE_AVAILABLE = True
+except ImportError:
+    CLAUDE_AVAILABLE = False
+    print("Warning: anthropic not available. Install with: pip install anthropic")
 
 try:
     from transformers import pipeline
@@ -95,6 +103,8 @@ class LLMManager:
         """Initialize the preferred model or fallback to available ones"""
         if self.preferred_model == "gemini" and self._init_gemini():
             self.current_model = "gemini"
+        elif self.preferred_model == "claude-sonnet" and self._init_claude():
+            self.current_model = "claude-sonnet"
         elif self.preferred_model in self.config.get("LOCAL_MODELS", {}) and self._init_local_model(self.preferred_model):
             self.current_model = self.preferred_model
         else:
@@ -106,6 +116,24 @@ class LLMManager:
             else:
                 print("❌ No available models found!")
                 sys.exit(1)
+
+    def _init_claude(self) -> bool:
+        """Initialize Anthropic Claude Sonnet API"""
+        api_key = self.config.get("CLAUDE_API_KEY") or self.config.get("ANTHROPIC_API_KEY")
+        if not CLAUDE_AVAILABLE:
+            print("[Claude Init] anthropic package not available.")
+            return False
+        if not api_key:
+            print("[Claude Init] No Claude API key found in config.")
+            return False
+        try:
+            self.claude_client = anthropic.Anthropic(api_key=api_key)
+            if self.config.get("VERBOSE_OUTPUT", True):
+                print("✓ Claude Sonnet API initialized")
+            return True
+        except Exception as e:
+            print(f"Failed to initialize Claude Sonnet: {e}")
+            return False
     
     def _init_gemini(self) -> bool:
         """Initialize Gemini API"""
@@ -150,11 +178,37 @@ class LLMManager:
     def generate(self, prompt: str, max_tokens: int = None) -> str:
         """Generate text using the current model"""
         max_tokens = max_tokens or self.config.get("MAX_TOKENS", 100)
-        
         if self.current_model == "gemini":
             return self._generate_gemini(prompt, max_tokens)
+        elif self.current_model == "claude-sonnet":
+            return self._generate_claude(prompt, max_tokens)
         else:
             return self._generate_local(prompt, max_tokens)
+
+    def _generate_claude(self, prompt: str, max_tokens: int) -> str:
+        """Generate using Claude Sonnet API"""
+        if not hasattr(self, "claude_client"):
+            return "Claude client not initialized"
+        try:
+            if self.config.get("LOG_API_CALLS", False):
+                print(f"API Call: Claude Sonnet - {prompt[:50]}...")
+            # Claude expects a system prompt and a user message
+            response = self.claude_client.messages.create(
+                model="claude-3-5-sonnet-20240620",
+                max_tokens=max_tokens,
+                temperature=self.config.get("TEMPERATURE", 0.7),
+                system="You are a Lean 4 theorem prover assistant. Output only valid Lean 4 code when asked.",
+                messages=[{"role": "user", "content": prompt}]
+            )
+            # Claude API returns a list of content blocks; join them if needed
+            if hasattr(response, "content"):
+                if isinstance(response.content, list):
+                    return "\n".join([c.text for c in response.content if hasattr(c, "text")])
+                return str(response.content)
+            return str(response)
+        except Exception as e:
+            print(f"Claude Sonnet API error: {e}")
+            return "Error generating response"
     
     def _generate_gemini(self, prompt: str, max_tokens: int) -> str:
         """Generate using Gemini API with rate limiting"""
@@ -207,11 +261,13 @@ class LLMManager:
     
     def get_model_info(self) -> Dict[str, Any]:
         """Get information about the current model"""
+        model_type = "api" if self.current_model in ["gemini", "claude-sonnet"] else "local"
+        rate_limited = self.config.get("ENABLE_RATE_LIMITING", True) and self.current_model in ["gemini", "claude-sonnet"]
         return {
             "current_model": self.current_model,
             "preferred_model": self.preferred_model,
-            "model_type": "api" if self.current_model == "gemini" else "local",
-            "rate_limited": self.config.get("ENABLE_RATE_LIMITING", True) and self.current_model == "gemini"
+            "model_type": model_type,
+            "rate_limited": rate_limited
         }
     
     def switch_model(self, model_name: str) -> bool:

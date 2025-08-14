@@ -6,6 +6,7 @@ Formal Proof Engine - Integrates with Lean theorem prover for actual mathematica
 
 import json
 import os
+import subprocess
 from datetime import datetime
 from typing import Dict, List, Optional, Tuple
 import re
@@ -28,7 +29,7 @@ class FormalProofEngine:
     Engine for generating, validating, and learning from formal mathematical proofs
     """
     
-    def __init__(self, api_key: str = None, learning_file: str = "formal_proof_learning.json"):
+    def __init__(self, api_key: str = None, learning_file: str = "formal_proof_learning.json", llm_name: str = "gemini"):
         self.lean_available = LEAN_AVAILABLE
         self.proof_cache = {}
         self.learned_tactics = []
@@ -40,9 +41,9 @@ class FormalProofEngine:
         
         # Initialize Lean translator; use debug mode if no API key
         if api_key:
-            self.translator = LeanTranslator(api_key=api_key, debug=False)
+            self.translator = LeanTranslator(api_key=api_key, debug=False, llm_name=llm_name)
         else:
-            self.translator = LeanTranslator(api_key=None, debug=True)
+            self.translator = LeanTranslator(api_key=None, debug=True, llm_name=llm_name)
         
     def initialize_lean_environment(self):
         """Initialize Lean environment for formal proving"""
@@ -90,9 +91,9 @@ class FormalProofEngine:
         clean_name = re.sub(r'[^\w]', '_', informal_statement[:50])
         return f"theorem {clean_name} : True"
     
-    def attempt_proof_with_translation(self, informal_statement: str) -> Dict:
+    def attempt_proof_with_translation(self, informal_statement: str, memory: Optional[dict] = None) -> Dict:
         """
-        Translate informal statement to Lean and attempt proof
+        Translate informal statement to Lean and attempt proof with iterative refinement
         """
         if not self.translator:
             # Fallback to old method
@@ -100,30 +101,103 @@ class FormalProofEngine:
             return self.attempt_proof(formal_statement)
         
         try:
-            # Use Gemini to translate to proper Lean syntax
-            lean_theorem, theorem_name = self.translator.translate_statement_to_lean(informal_statement)
+            # Aggregate previous Lean feedback from memory (if any)
+            previous_feedback = []
+            previous_attempts = []
+            if memory is not None:
+                previous_feedback = memory.get("lean_feedback", [])
+                # Also collect previous failed attempts for this same statement
+                previous_attempts = [fp for fp in memory.get("formal_proofs", []) 
+                                   if fp.get("informal_statement") == informal_statement and not fp.get("success", False)]
             
-            # Generate proof attempt
-            proof_attempt = self.translator.generate_proof_attempt(lean_theorem)
-            
-            # Actually test the proof with Lean!
-            lean_validation = self.test_with_lean(lean_theorem, proof_attempt)
-            
-            # Create properly formatted result
-            result = self.translator.format_for_memory(lean_theorem, informal_statement, proof_attempt)
-            result["timestamp"] = datetime.now().isoformat()
-            
-            # Use real Lean validation results
-            result["success"] = lean_validation["success"]
-            result["verification_status"] = "verified" if lean_validation["success"] else "failed"
-            result["lean_error"] = lean_validation.get("error")
-            result["lean_output"] = lean_validation.get("output")
+            # Try iterative refinement up to 3 attempts
+            max_attempts = 3
+            for attempt in range(max_attempts):
+                print(f"[FormalProofEngine] Proof attempt {attempt + 1}/{max_attempts}")
+                
+                # Use the more sophisticated pipeline method
+                translation_result = self.translator.english_to_lean_pipeline(informal_statement, previous_feedback)
+                
+                lean_theorem = translation_result.get("lean_statement")
+                proof_attempt = translation_result.get("proof_attempt")
+                
+                if not lean_theorem:
+                    # Fallback to simpler method
+                    lean_theorem, theorem_name = self.translator.translate_statement_to_lean(informal_statement)
+                    proof_attempt = self.translator.generate_proof_attempt(lean_theorem)
+                
+                # Check if the theorem statement itself contains "by sorry" and fix it
+                if lean_theorem and "by sorry" in lean_theorem:
+                    print(f"[FormalProofEngine] Theorem statement contains 'by sorry', requesting proper statement")
+                    # Extract just the theorem declaration without the proof
+                    if ":=" in lean_theorem:
+                        lean_theorem = lean_theorem.split(":=")[0].strip() + " := by sorry"
+                
+                # Check if we got a meaningful proof (not just "by sorry")
+                if proof_attempt and ("by sorry" in proof_attempt and len(proof_attempt.strip()) < 20):
+                    print(f"[FormalProofEngine] Got 'by sorry', requesting better proof attempt")
+                    # Ask for a more complete proof
+                    better_proof = self._request_complete_proof(lean_theorem, previous_feedback, previous_attempts)
+                    if better_proof:
+                        proof_attempt = better_proof
+                
+                # Actually test the proof with Lean!
+                lean_validation = self.test_with_lean(lean_theorem, proof_attempt)
+                
+                # Create properly formatted result
+                result = self.translator.format_for_memory(lean_theorem, informal_statement, proof_attempt)
+                result["timestamp"] = datetime.now().isoformat()
+                result["attempt_number"] = attempt + 1
+                
+                # Use real Lean validation results
+                result["success"] = lean_validation["success"]
+                result["verification_status"] = "verified" if lean_validation["success"] else "failed"
+                result["lean_error"] = lean_validation.get("error")
+                result["lean_output"] = lean_validation.get("output")
+                
+                # If successful, return immediately
+                if lean_validation["success"]:
+                    print(f"[FormalProofEngine] Success on attempt {attempt + 1}")
+                    return result
+                
+                # If failed, parse feedback and prepare for next iteration
+                if not lean_validation["success"]:
+                    try:
+                        from src.lean_feedback_parser import LeanFeedbackParser
+                    except ImportError:
+                        from lean_feedback_parser import LeanFeedbackParser
+                    
+                    parser = LeanFeedbackParser(lean_validation.get("output", "") or lean_validation.get("error", ""))
+                    new_feedback = parser.parse()
+                    
+                    # Add to previous feedback for next iteration
+                    previous_feedback.extend(new_feedback)
+                    previous_attempts.append({
+                        "lean_statement": lean_theorem,
+                        "proof_attempt": proof_attempt,
+                        "error": lean_validation.get("output", ""),
+                        "attempt": attempt + 1
+                    })
+                    
+                    # Store in memory for future runs
+                    if memory is not None:
+                        if "lean_feedback" not in memory:
+                            memory["lean_feedback"] = []
+                        memory["lean_feedback"].extend(new_feedback)
+                        memory["lean_feedback"] = list(dict.fromkeys(memory["lean_feedback"]))  # deduplicate
+                    
+                    result["lean_feedback"] = new_feedback
+                    print(f"[FormalProofEngine] Attempt {attempt + 1} failed, feedback: {new_feedback[:2]}...")  # show first 2 items
+                    
+                    # If this is the last attempt, return the failed result
+                    if attempt == max_attempts - 1:
+                        print(f"[FormalProofEngine] All {max_attempts} attempts failed")
+                        return result
             
             return result
-            
+                    
         except Exception as e:
             print(f"Error in proof translation: {e}")
-            
             # Check if this is a quota/API error - if so, propagate it instead of fallback
             err_str = str(e)
             if ('quota' in err_str.lower() or 'rate limit' in err_str.lower() or 
@@ -138,7 +212,6 @@ class FormalProofEngine:
                     "theorem": informal_statement,
                     "timestamp": datetime.now().isoformat()
                 }
-            
             # For other errors, fallback to old method
             formal_statement = self.generate_formal_conjecture(informal_statement)
             return self.attempt_proof(formal_statement)
@@ -313,7 +386,10 @@ class FormalProofEngine:
                         "contexts": [context[:3]]
                     })
                     
-            print(f"📖 Learned failure pattern for {theorem_type}: {self._classify_error(lean_error)}")
+            error_type = self._classify_error(lean_error)
+            print(f"📖 Learned failure pattern for {theorem_type}: {error_type}")
+            if lean_error:
+                print(f"[Lean Error Message] {lean_error}")
             
         # Save learning data after each learning event
         self._save_learning_data()
@@ -440,18 +516,31 @@ class FormalProofEngine:
         try:
             # Create a temporary Lean file with the proof
             with tempfile.NamedTemporaryFile(mode='w', suffix='.lean', delete=False) as f:
-                # Write a complete Lean file
-                if ':=' in theorem_statement and 'by' in theorem_statement:
+                # Add necessary imports for number theory/parity
+                imports = [
+                    "import Mathlib.Algebra.Ring.Parity"
+                ]
+                lean_content = "\n".join(imports) + "\n\n"
+                
+                # Write the theorem - properly combine statement and proof
+                if ':=' in theorem_statement and 'by sorry' in theorem_statement:
+                    # Replace "by sorry" with the actual proof attempt
+                    if proof_attempt and proof_attempt != "by sorry":
+                        theorem_with_proof = theorem_statement.replace("by sorry", proof_attempt)
+                        lean_content += f"-- Auto-generated proof test\n{theorem_with_proof}\n"
+                    else:
+                        lean_content += f"-- Auto-generated proof test\n{theorem_statement}\n"
+                elif ':=' in theorem_statement and 'by' in theorem_statement:
                     # Already a complete theorem
-                    lean_content = f"-- Auto-generated proof test\n{theorem_statement}\n"
+                    lean_content += f"-- Auto-generated proof test\n{theorem_statement}\n"
                 else:
                     # Need to construct the full theorem
                     if ':' in theorem_statement and not ':=' in theorem_statement:
                         # Add the proof part
-                        lean_content = f"-- Auto-generated proof test\n{theorem_statement} := {proof_attempt}\n"
+                        lean_content += f"-- Auto-generated proof test\n{theorem_statement} := {proof_attempt}\n"
                     else:
                         # Assume it's just the theorem name, create a simple structure
-                        lean_content = f"-- Auto-generated proof test\n{theorem_statement}\n"
+                        lean_content += f"-- Auto-generated proof test\n{theorem_statement}\n"
                 
                 f.write(lean_content)
                 temp_file = f.name
@@ -464,14 +553,37 @@ class FormalProofEngine:
                 if lean_path not in env.get("PATH", ""):
                     env["PATH"] = f"{lean_path}:{env.get('PATH', '')}"
                 
-                # Try to check the Lean file (Lean 4 syntax)
-                result = subprocess.run(
-                    ['lean', temp_file], 
-                    capture_output=True, 
-                    text=True, 
-                    timeout=10,
-                    env=env
-                )
+                # Use lake env lean to ensure Mathlib is available
+                # First try to find the project root (where lakefile.toml/lakefile.lean exists)
+                project_root = os.getcwd()
+                while project_root != "/" and not (
+                    os.path.exists(os.path.join(project_root, "lakefile.toml")) or 
+                    os.path.exists(os.path.join(project_root, "lakefile.lean"))
+                ):
+                    project_root = os.path.dirname(project_root)
+                
+                if project_root != "/" and (
+                    os.path.exists(os.path.join(project_root, "lakefile.toml")) or 
+                    os.path.exists(os.path.join(project_root, "lakefile.lean"))
+                ):
+                    # Run lake env lean from the project root
+                    result = subprocess.run(
+                        ['lake', 'env', 'lean', temp_file], 
+                        capture_output=True, 
+                        text=True, 
+                        timeout=30,  # Increased timeout for lake env
+                        env=env,
+                        cwd=project_root
+                    )
+                else:
+                    # Fallback to direct lean if no Lake project found
+                    result = subprocess.run(
+                        ['lean', temp_file], 
+                        capture_output=True, 
+                        text=True, 
+                        timeout=10,
+                        env=env
+                    )
                 
                 if result.returncode == 0:
                     return {
@@ -508,6 +620,65 @@ class FormalProofEngine:
                 os.unlink(temp_file)
             except:
                 pass
+    
+    def _request_complete_proof(self, lean_theorem: str, previous_feedback: List[str], previous_attempts: List[dict]) -> Optional[str]:
+        """
+        Request a complete proof when the LLM returns 'by sorry'
+        """
+        if not self.translator:
+            return None
+            
+        # Create context from previous attempts
+        context_info = ""
+        if previous_attempts:
+            context_info = "\nPrevious failed attempts:\n"
+            for i, attempt in enumerate(previous_attempts[-2:]):  # Last 2 attempts
+                context_info += f"Attempt {attempt.get('attempt', i+1)}: {attempt.get('proof_attempt', 'unknown')}\n"
+                if attempt.get('error'):
+                    context_info += f"Error: {attempt['error'][:200]}...\n"
+        
+        feedback_info = ""
+        if previous_feedback:
+            feedback_info = "\nPrevious feedback to address:\n" + "\n".join(previous_feedback[-3:])  # Last 3 feedback items
+        
+        complete_proof_prompt = f"""
+You previously provided 'by sorry' for this theorem. Please provide a complete, working proof.
+
+Theorem:
+{lean_theorem}
+
+Requirements:
+- Do NOT use 'sorry' 
+- Provide a complete proof using valid Lean 4 tactics
+- Use standard tactics: obtain, use, rw, ring, simp, apply, exact, intro
+- For Even n: means ∃ k, n = 2 * k (use obtain ⟨k, hk⟩ := ha)
+- For Odd n: means ∃ k, n = 2 * k + 1 (use obtain ⟨k, hk⟩ := ha)
+- Use proper Lean 4 syntax (not Lean 3)
+- If the theorem is too hard, try a simpler approach or use basic tactics
+
+Important Lean 4 syntax examples:
+- Destructuring: obtain ⟨k, hk⟩ := ha
+- Providing witness: use k + l  
+- Rewrites: rw [hk, hl]
+- Ring calculations: ring
+- Available import: Mathlib.Algebra.Ring.Parity
+
+{context_info}
+{feedback_info}
+
+Complete proof (start with 'by'):"""
+
+        try:
+            complete_proof = self.translator._generate_content(complete_proof_prompt, max_tokens=300)
+            if complete_proof and 'sorry' not in complete_proof:
+                print(f"[FormalProofEngine] Got complete proof attempt (no sorry)")
+                return self.translator._postprocess_lean_proof(complete_proof)
+            else:
+                print(f"[FormalProofEngine] Still got sorry or no response")
+                return None
+        except Exception as e:
+            print(f"[FormalProofEngine] Error requesting complete proof: {e}")
+            return None
     
     def _basic_proof_validation(self, theorem_statement: str, proof_attempt: str) -> Dict:
         """

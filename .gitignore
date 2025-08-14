@@ -38,4 +38,12 @@ analyze_techniques.py
 .swp
 *.swp
 
+#lean
+.lake
 *.lean
+lake-manifest.json
+research_log_*.md/.lake
+lean-toolchain
+
+#github
+.github

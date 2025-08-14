@@ -95,6 +95,9 @@ def run_research_loop(config):
         config.DEFAULT_LLM,
         config={
             "GEMINI_API_KEY": config.GEMINI_API_KEY,
+            "CLAUDE_API_KEY": getattr(config, 'CLAUDE_API_KEY', None),
+            "ANTHROPIC_API_KEY": getattr(config, 'CLAUDE_API_KEY', None),  # Alias for Claude
+            "OPENAI_API_KEY": getattr(config, 'OPENAI_API_KEY', None),
             "GEMINI_RATE_LIMIT": config.RATE_LIMIT,
             "LOCAL_MODELS": {
                 "phi2": "microsoft/phi-2",
@@ -112,15 +115,19 @@ def run_research_loop(config):
     )
 
     # Initialize formal proof engine
-    api_key = config.GEMINI_API_KEY if config.ENABLE_LEAN_TRANSLATION else None
-    formal_engine = FormalProofEngine(api_key=api_key)
+    # Get the appropriate API key based on the LLM being used
+    if config.DEFAULT_LLM == "claude-sonnet":
+        api_key = getattr(config, 'CLAUDE_API_KEY', None) if config.ENABLE_LEAN_TRANSLATION else None
+    else:
+        api_key = config.GEMINI_API_KEY if config.ENABLE_LEAN_TRANSLATION else None
+    formal_engine = FormalProofEngine(api_key=api_key, llm_name=config.DEFAULT_LLM)
 
     proof_assistant = MathProofAssistant()
     breakthrough_detector = BreakthroughDetector()
     quality_assessor = ProofQualityAssessor()
 
-    # Special debug mode for phi2: do not update memory file, only log to console
-    phi2_debug = getattr(config.llm_profile, 'debug_only', False) or config.llm_name == 'phi2' or config.llm_profile.get('disable_memory_update', False)
+    # Debug mode: do not update memory file, only log to console if debug_only is set in profile
+    phi2_debug = getattr(config.llm_profile, 'debug_only', False)
 
     # Prevent any modifications if memory is marked complete
     if memory.get("complete", False):
