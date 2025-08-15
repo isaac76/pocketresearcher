@@ -23,7 +23,7 @@ from datetime import datetime
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, project_root)
 
-from config_unified import create_config, list_available_llms, list_available_problems
+from config_unified import create_config, list_available_llms, list_available_problems, INITIAL_AXIOMS
 
 def main():
     """Main entry point with unified configuration"""
@@ -152,10 +152,37 @@ def run_research_loop(config):
     # Initialize memory if empty or contaminated
     if not memory.get("facts") or len(memory.get("facts", [])) == 0:
         print("🔄 Initializing memory with problem-specific content...")
-        memory["facts"] = config.INITIAL_FACTS.copy()
+
+        # Ensure global axioms are persisted in the dictionary and then seed
+        # the problem memory with axioms + problem facts (avoid duplicates).
+        try:
+            from dict_manager import DictionaryManager
+            dm = DictionaryManager()
+            dm.ensure_axioms_category(INITIAL_AXIOMS, category="axioms")
+        except Exception:
+            # If dict_manager cannot be used, continue without persisting axioms
+            pass
+
+        # Compose axioms + problem facts without duplicates
+        seen = set()
+        combined_facts = []
+        for fact in (INITIAL_AXIOMS.get("logical_axioms", []) +
+                     INITIAL_AXIOMS.get("arithmetic_axioms", []) +
+                     INITIAL_AXIOMS.get("geometry_axioms", []) +
+                     INITIAL_AXIOMS.get("set_theory_axioms", []) +
+                     INITIAL_AXIOMS.get("inference_rules", [])):
+            if fact not in seen:
+                seen.add(fact)
+                combined_facts.append(fact)
+        for fact in config.INITIAL_FACTS:
+            if fact not in seen:
+                seen.add(fact)
+                combined_facts.append(fact)
+
+        memory["facts"] = combined_facts
         memory["ideas"] = config.INITIAL_IDEAS.copy()
         memory_store.save(memory, category)
-        print(f"✅ Initialized with {len(config.INITIAL_FACTS)} facts and {len(config.INITIAL_IDEAS)} ideas")
+        print(f"✅ Initialized with {len(memory['facts'])} facts and {len(memory.get('ideas', []))} ideas (including axioms)")
     
     print(f"🗂️  Loaded memory: {len(memory.get('facts', []))} facts, {len(memory.get('ideas', []))} ideas")
     print()
@@ -309,11 +336,29 @@ def run_single_research_step(memory, config, llm_manager, content_filter,
                            formal_engine, proof_assistant, breakthrough_detector, quality_assessor):
     """Run a single research step using unified configuration"""
     
-    # Generate fact using problem-specific prompt
+    # Load axioms from the unified dictionary (if present) to include in prompts
+    axioms_block = ""
+    try:
+        from dict_manager import DictionaryManager
+        dm = DictionaryManager()
+        dict_data = dm.load_dictionary()
+        axioms_cat = dict_data.get("categories", {}).get("axioms", {})
+        axioms_list = axioms_cat.get("facts", [])
+        if axioms_list:
+            axioms_block = "\n".join([f"Axiom: {a}" for a in axioms_list[:50]])  # limit size
+            # Include proof strategies if present (short list)
+            strategies = axioms_cat.get("proof_strategies", [])
+            if strategies:
+                strat_block = "\n".join([f"Strategy: {s}" for s in strategies[:10]])
+                axioms_block = axioms_block + "\n" + strat_block
+    except Exception:
+        axioms_block = ""
+
+    # Generate fact using problem-specific prompt (prepend axioms)
     recent_facts = memory.get("facts", [])[-3:] if memory.get("facts") else []
     recent_fact = recent_facts[-1] if recent_facts else "No previous facts"
     
-    fact_prompt = config.FACT_PROMPT.format(recent_fact=recent_fact)
+    fact_prompt = (axioms_block + "\n" + config.FACT_PROMPT.format(recent_fact=recent_fact)).strip()
     fact_result = llm_manager.generate(fact_prompt, max_tokens=config.MAX_TOKENS)
     fact = extract_meaningful_content(fact_result, "fact") if fact_result else None
     
@@ -321,7 +366,7 @@ def run_single_research_step(memory, config, llm_manager, content_filter,
     recent_ideas = memory.get("ideas", [])[-3:] if memory.get("ideas") else []
     recent_idea = recent_ideas[-1] if recent_ideas else "No previous ideas"
     
-    idea_prompt = config.IDEA_PROMPT.format(recent_idea=recent_idea)
+    idea_prompt = (axioms_block + "\n" + config.IDEA_PROMPT.format(recent_idea=recent_idea)).strip()
     idea_result = llm_manager.generate(idea_prompt, max_tokens=config.MAX_TOKENS)
     idea = extract_meaningful_content(idea_result, "idea") if idea_result else None
     

@@ -22,6 +22,17 @@
         }
       }
     }
+  ,
+    "axioms": {
+      "type": "object",
+      "description": "Global axioms useful for many problems. Stored as a set of named axiom groups.",
+      "patternProperties": {
+        "^[a-zA-Z0-9_]+$": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    }
   },
   "required": ["categories"]
 }

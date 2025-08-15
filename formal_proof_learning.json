@@ -822,6 +822,20 @@
         "theorem"
       ],
       "timestamp": "2025-08-14T14:24:07.035516"
+    },
+    {
+      "theorem_type": "general",
+      "successful_tactics": [],
+      "working_tactic": [],
+      "context_keywords": [],
+      "timestamp": "2025-08-15T10:00:52.986166"
+    },
+    {
+      "theorem_type": "general",
+      "successful_tactics": [],
+      "working_tactic": [],
+      "context_keywords": [],
+      "timestamp": "2025-08-15T10:00:53.662766"
     }
   ],
   "failure_patterns": [
@@ -830,14 +844,14 @@
       "failed_tactics": [],
       "error_type": "unknown",
       "context_keywords": [],
-      "timestamp": "2025-08-14T16:45:50.173686"
+      "timestamp": "2025-08-15T13:44:00.374825"
     },
     {
       "theorem_type": "complexity_class",
       "failed_tactics": [],
       "error_type": "unknown",
       "context_keywords": [],
-      "timestamp": "2025-08-14T16:46:07.895742"
+      "timestamp": "2025-08-15T13:44:38.340563"
     }
   ]
 }

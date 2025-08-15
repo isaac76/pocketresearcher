@@ -189,6 +189,59 @@ class DictionaryManager:
         proofs_count = len(old_data.get("formal_proofs", []))
         print(f"   Migrated: {facts_count} facts, {ideas_count} ideas, {proofs_count} formal proofs")
 
+    def ensure_axioms_category(self, axioms: dict, category: str = "axioms"):
+        """Ensure a dedicated 'axioms' category exists in the dictionary and
+        populate its facts from the provided axioms mapping (concatenate all
+        lists). This is idempotent and will overwrite the facts list for the
+        axioms category so it matches the provided axioms.
+        """
+        dict_data = self.load_dictionary()
+        if "categories" not in dict_data:
+            dict_data["categories"] = {}
+
+        # Build flattened list of axiom strings preserving order
+        flattened = []
+        seen = set()
+        for v in axioms.values():
+            if isinstance(v, list):
+                for item in v:
+                    if not isinstance(item, str):
+                        continue
+                    if item in seen:
+                        continue
+                    seen.add(item)
+                    flattened.append(item)
+
+        # Ensure category structure
+        cat = dict_data["categories"].get(category, {})
+        # Primary storage: facts is a flattened list of canonical axioms
+        cat["facts"] = flattened
+        # If the provided axioms include specialized strategy templates,
+        # persist them under a dedicated key so callers can include them
+        # separately (e.g. as "Strategy: ..." in prompts).
+        proof_strats = []
+        seen_strat = set()
+        for s in axioms.get("proof_strategies", []):
+            if isinstance(s, str) and s not in seen_strat:
+                seen_strat.add(s)
+                proof_strats.append(s)
+        if proof_strats:
+            cat["proof_strategies"] = proof_strats
+        else:
+            # Ensure the key exists for consumers
+            cat.setdefault("proof_strategies", [])
+        # Ensure required arrays exist
+        cat.setdefault("ideas", [])
+        cat.setdefault("reflections", [])
+        cat.setdefault("proofs", [])
+        cat.setdefault("techniques", [])
+        cat.setdefault("experiments", [])
+        cat.setdefault("formal_proofs", [])
+
+        dict_data["categories"][category] = cat
+        self.save_dictionary(dict_data)
+        print(f"\u2705 Ensured axioms category '{category}' with {len(flattened)} facts in {self.dict_path}")
+
 def main():
     if len(sys.argv) < 2:
         print(__doc__)

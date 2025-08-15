@@ -126,19 +126,36 @@ class FormalProofEngine:
                     lean_theorem, theorem_name = self.translator.translate_statement_to_lean(informal_statement)
                     proof_attempt = self.translator.generate_proof_attempt(lean_theorem)
 
-                # Check if the theorem statement itself contains "by sorry" and fix it
-                if lean_theorem and "by sorry" in lean_theorem:
-                    print(f"[FormalProofEngine] Theorem statement contains 'by sorry', requesting proper statement")
-                    # Extract just the theorem declaration without the proof
-                    if ":=" in lean_theorem:
-                        lean_theorem = lean_theorem.split(":=")[0].strip() + " := by sorry"
+                # If the translator returned a proof containing 'sorry' or otherwise trivial,
+                # attempt to request a complete proof before running Lean.
+                if proof_attempt:
+                    if 'sorry' in proof_attempt.lower():
+                        print(f"[FormalProofEngine] Proof attempt contains 'sorry', requesting a complete proof")
+                        better_proof = self._request_complete_proof(lean_theorem, previous_feedback, previous_attempts)
+                        if better_proof and 'sorry' not in better_proof.lower():
+                            proof_attempt = better_proof
+                    elif self.translator.is_trivial_proof(proof_attempt):
+                        print(f"[FormalProofEngine] Got trivial/incomplete proof, requesting better proof attempt")
+                        better_proof = self._request_complete_proof(lean_theorem, previous_feedback, previous_attempts)
+                        if better_proof and not self.translator.is_trivial_proof(better_proof):
+                            proof_attempt = better_proof
 
-                # Check for trivial/incomplete proof (by sorry, by trivial, by admit, etc.)
-                if proof_attempt and self.translator.is_trivial_proof(proof_attempt):
-                    print(f"[FormalProofEngine] Got trivial/incomplete proof, requesting better proof attempt")
-                    # Ask for a more complete proof
+                # Conservative Peano sanitization (only for likely Peano theorems)
+                original_proof = proof_attempt
+                try:
+                    if any(k in (lean_theorem or '').lower() for k in ['n + 0', 'peano', 'add_zero', 'addition']):
+                        sanitized = self._peano_sanitizer(lean_theorem, proof_attempt)
+                        if sanitized and sanitized != proof_attempt:
+                            print("[FormalProofEngine] Applied Peano sanitizer (minor syntactic fixes)")
+                            proof_attempt = sanitized
+                except Exception:
+                    pass
+
+                # Do a quick syntax sanity check; if it fails try to request a better proof
+                if not self._basic_syntax_check(lean_theorem, proof_attempt):
+                    print(f"[FormalProofEngine] Basic syntax check failed, requesting improved proof/theorem")
                     better_proof = self._request_complete_proof(lean_theorem, previous_feedback, previous_attempts)
-                    if better_proof and not self.translator.is_trivial_proof(better_proof):
+                    if better_proof and 'sorry' not in better_proof.lower():
                         proof_attempt = better_proof
 
                 # Actually test the proof with Lean!
@@ -146,6 +163,10 @@ class FormalProofEngine:
 
                 # Create properly formatted result
                 result = self.translator.format_for_memory(lean_theorem, informal_statement, proof_attempt)
+                # attach original and sanitized proofs for auditing (do not overwrite originals)
+                result['original_proof_attempt'] = original_proof
+                if original_proof != proof_attempt:
+                    result['sanitized_proof_attempt'] = proof_attempt
                 result["timestamp"] = datetime.now().isoformat()
                 result["attempt_number"] = attempt + 1
 
@@ -188,6 +209,19 @@ class FormalProofEngine:
                     
                     result["lean_feedback"] = new_feedback
                     print(f"[FormalProofEngine] Attempt {attempt + 1} failed, feedback: {new_feedback[:2]}...")  # show first 2 items
+
+                    # Try a small, targeted escalation for missing identifier errors: ask the LLM
+                    # for the minimal import or an alternative lemma and add that to the feedback
+                    try:
+                        targeted = self._handle_missing_identifier_feedback(new_feedback, lean_theorem)
+                        if targeted:
+                            print(f"[FormalProofEngine] Added targeted suggestion for next attempt: {targeted}")
+                            previous_feedback.append(targeted)
+                            # persist this hint in memory as well
+                            if memory is not None:
+                                memory.setdefault("lean_feedback", []).append(targeted)
+                    except Exception:
+                        pass
                     
                     # If this is the last attempt, return the failed result
                     if attempt == max_attempts - 1:
@@ -455,6 +489,224 @@ class FormalProofEngine:
             return "satisfiability"
         else:
             return "general"
+
+    def _basic_syntax_check(self, lean_theorem: str, proof_attempt: Optional[str]) -> bool:
+        """
+        Quick, heuristic checks to catch obviously invalid Lean fragments before invoking Lean.
+        Returns True if the snippet passes basic checks, False if obviously broken.
+        """
+        if not lean_theorem:
+            return False
+
+        # If the proof contains 'sorry' then it's incomplete
+        if proof_attempt and 'sorry' in proof_attempt.lower():
+            return False
+
+        # Basic delimiter checks
+        if 'theorem' in lean_theorem or 'def' in lean_theorem or 'lemma' in lean_theorem:
+            # Ensure colons and := structure is present for statements that include types
+            if ':' in lean_theorem and (':=' in lean_theorem or ' := ' in lean_theorem or 'by' in proof_attempt if proof_attempt else False):
+                return True
+            # If the theorem is only a name without type, pass (we will construct wrapper)
+            if re.match(r'^theorem\s+\w+', lean_theorem.strip()):
+                return True
+
+        # If no clear theorem marker, fail conservatively
+        return False
+
+    def _handle_missing_identifier_feedback(self, feedback_list: List[str], lean_theorem: str) -> Optional[str]:
+        """
+        Inspect parsed feedback and produce a small targeted prompt/hint that will be
+        appended to the next LLM prompt. For example, when feedback contains an unknown
+        identifier X, suggest adding the minimal Mathlib import that likely defines X
+        or request an alternative lemma avoiding X.
+        Returns a short string to add to previous_feedback or None.
+        """
+        if not feedback_list:
+            return None
+
+        # Look for obvious missing-identifier messages
+        for fb in feedback_list:
+            low = fb.lower()
+            # Patterns produced by LeanFeedbackParser include 'Import or define missing identifier: X'
+            m = re.search(r'missing identifier\s*[:\-]?\s*(\w+)', low)
+            if not m:
+                # Also check for the more generic phrasing
+                m2 = re.search(r"import or define missing identifier:\s*(\w+)", fb, re.I)
+                if m2:
+                    ident = m2.group(1)
+                else:
+                    ident = None
+            else:
+                ident = m.group(1)
+
+            if ident:
+                # Heuristic mapping for common nat/peano identifiers
+                ident_lower = ident.lower()
+                if ident_lower in ['nat.add_succ', 'add_succ', 'nat.add_succ', 'add_zero', 'nat.add_zero']:
+                    return f"Missing identifier {ident}: try importing Mathlib.Init.Data.Nat.Basic or use Nat.add_zero / Nat.add_succ."
+                if ident_lower in ['even', 'odd']:
+                    return f"Missing identifier {ident}: try importing Mathlib.Algebra.Ring.Parity and destructure Even/Odd using 'obtain ⟨k, hk⟩ := ha'."
+
+                # Generic suggestion: ask the LLM to provide the minimal import or an alternative lemma
+                return f"Missing identifier {ident}: please provide the minimal Mathlib import that defines '{ident}' or suggest an alternative lemma/statement that avoids using '{ident}'."
+
+        # Look for messages indicating missing imports or modules
+        for fb in feedback_list:
+            if 'missing import' in fb.lower() or 'does not exist' in fb.lower() and 'module' in fb.lower():
+                # Suggest searching for the module or adding a minimal import hint
+                return "Lean reported a missing import: please add the minimal Mathlib import (e.g., Mathlib.Init.Data.Nat.Basic) or suggest which mathlib module contains the missing identifiers."
+
+        return None
+
+    def _ensure_imports_for_theorem(self, theorem_statement: str) -> List[str]:
+        """
+        Choose a small set of Lean imports based on keywords in the theorem statement.
+        This reduces obvious 'unknown identifier' and missing import errors.
+        """
+        imports = []
+        s = theorem_statement.lower() if theorem_statement else ''
+
+        # Number theory / naturals
+        if any(k in s for k in ['nat', '\\mathbb', 'ℕ', 'even', 'odd', 'add', '+', 'suc', 'succ', 'peano']):
+            imports.append('import Mathlib.Init.Data.Nat.Basic')
+            imports.append('import Mathlib.Algebra.Ring.Basic')
+            imports.append('import Mathlib.Tactic.Ring')
+
+        # Set / logic / basic tactics
+        if any(k in s for k in ['forall', 'exists', 'implies', 'iff', '⊢', '->', '→']):
+            imports.append('import Mathlib.Logic.Basic')
+            imports.append('import Mathlib.Tactic.Basic')
+
+        # Complexity / languages (heuristic)
+        if any(k in s for k in ['np', 'p ', 'sat', 'language', 'turing']):
+            imports.append('import Mathlib.Computability.Language')
+            imports.append('import Mathlib.Computability.NP')
+
+        # Parity / even/odd helpers
+        if 'even' in s or 'odd' in s:
+            imports.append('import Mathlib.Algebra.Ring.Parity')
+
+        # Remove duplicates while preserving order
+        seen = set()
+        filtered = []
+        for imp in imports:
+            if imp not in seen:
+                filtered.append(imp)
+                seen.add(imp)
+
+        # If nothing matched, provide a minimal import to help Lean parse nat/logic
+        if not filtered:
+            filtered = ['import Mathlib.Init.Data.Nat.Basic', 'import Mathlib.Tactic.Basic']
+
+        return filtered
+
+    def _infer_imports_from_proof(self, proof_text: Optional[str], lean_theorem: Optional[str] = None) -> List[str]:
+        """
+        Heuristically infer likely Mathlib import lines from a proof or theorem text.
+        Returns a list of import statements (e.g. 'import Mathlib.Init.Data.Nat.Basic').
+        This is conservative: it looks for known identifiers and maps them to likely
+        Mathlib modules using a small curated dictionary.
+        """
+        if not proof_text and not lean_theorem:
+            return []
+
+        text = (proof_text or '') + '\n' + (lean_theorem or '')
+        text_lower = text.lower()
+
+        mapping = {
+            # naturals / Peano
+            'nat': 'import Mathlib.Init.Data.Nat.Basic',
+            'add_zero': 'import Mathlib.Init.Data.Nat.Basic',
+            'add_succ': 'import Mathlib.Init.Data.Nat.Basic',
+            'nat.add_succ': 'import Mathlib.Init.Data.Nat.Basic',
+            'succ': 'import Mathlib.Init.Data.Nat.Basic',
+            'suc': 'import Mathlib.Init.Data.Nat.Basic',
+            # parity / even/odd
+            'even': 'import Mathlib.Algebra.Ring.Parity',
+            'odd': 'import Mathlib.Algebra.Ring.Parity',
+            # tactics / tactic libraries
+            'ring': 'import Mathlib.Tactic.Ring',
+            'norm_num': 'import Mathlib.Tactic.NormNum',
+            # logic / basic
+            'forall': 'import Mathlib.Logic.Basic',
+            'exists': 'import Mathlib.Logic.Basic',
+            # computability / complexity
+            'language': 'import Mathlib.Computability.Language',
+            'np': 'import Mathlib.Computability.NP',
+            'coNP'.lower(): 'import Mathlib.Computability.NP',
+            # tactics basic
+            'simp': 'import Mathlib.Tactic.Basic',
+            'rw': 'import Mathlib.Tactic.Basic',
+            'obtain': 'import Mathlib.Tactic.Basic',
+            'use': 'import Mathlib.Tactic.Basic',
+        }
+
+        suggested = []
+        for token, imp in mapping.items():
+            if token in text_lower and imp not in suggested:
+                suggested.append(imp)
+
+        # Also pick up explicit Mathlib module mentions in the proof text
+        # e.g. `Mathlib.Algebra.Ring.Parity` -> include as-is
+        explicit = re.findall(r"Mathlib\.[A-Za-z0-9_.]+", text)
+        for e in explicit:
+            imp_line = f"import {e}"
+            if imp_line not in suggested:
+                suggested.insert(0, imp_line)
+
+        # Deduplicate preserving order
+        seen = set()
+        filtered = []
+        for imp in suggested:
+            if imp not in seen:
+                filtered.append(imp)
+                seen.add(imp)
+
+        return filtered
+
+    def _peano_sanitizer(self, lean_theorem: str, proof_attempt: Optional[str]) -> Optional[str]:
+        """
+        Conservative sanitizer for Peano-style proofs.
+        - Fix tokenization artifacts like S(n) -> Nat.succ n or succ n
+        - Ensure proof starts with 'by' if it looks like a proof body
+        - Normalize common Unicode tokens to ASCII where safe
+        Does NOT invent tactics or add steps; only rewrites tokens and small formatting.
+        """
+        if not proof_attempt:
+            return None
+
+        s = proof_attempt
+
+        # Normalize common unicode minus/arrow characters
+        s = s.replace('\u2013', '-')
+        s = s.replace('\u2014', '-')
+        s = s.replace('→', '->')
+        s = s.replace('→', '->')
+
+        # Convert S(n) or s(n) to Nat.succ n (only simple patterns)
+        s = re.sub(r"\bS\((\w+)\)", r"Nat.succ \1", s)
+        s = re.sub(r"\bs\((\w+)\)", r"Nat.succ \1", s)
+        s = re.sub(r"\bS(\w+)\b", r"Nat.succ \1", s)
+
+        # If proof looks like a tactic sequence but missing 'by' prefix, add it
+        if s.strip() and not s.strip().lower().startswith('by'):
+            # Heuristic: if it contains known tactics, prefix 'by '
+            if any(tok in s for tok in ['induction', 'rfl', 'simp', 'rw', 'use', 'obtain', 'intro']):
+                s = 'by ' + s.strip()
+
+        # Trim trailing whitespace
+        s = s.strip()
+
+        # Very small safety: do not return if we would remove 'sorry' (we won't alter content semantics)
+        if 'sorry' in proof_attempt.lower() and 'sorry' not in s.lower():
+            # Avoid removing 'sorry' silently
+            return None
+
+        # If nothing changed, return original to avoid extra noise
+        if s == proof_attempt:
+            return None
+        return s
     
     def _extract_keywords(self, context: List[str]) -> List[str]:
         """Extract relevant keywords from context"""
@@ -516,11 +768,19 @@ class FormalProofEngine:
         try:
             # Create a temporary Lean file with the proof
             with tempfile.NamedTemporaryFile(mode='w', suffix='.lean', delete=False) as f:
-                # Add necessary imports for number theory/parity
-                imports = [
-                    "import Mathlib.Algebra.Ring.Parity"
-                ]
-                lean_content = "\n".join(imports) + "\n\n"
+                # Select imports dynamically based on theorem content and the proof text.
+                imports = self._ensure_imports_for_theorem(theorem_statement)
+
+                # Try to infer additional imports from the proof text or theorem
+                inferred = self._infer_imports_from_proof(proof_attempt, theorem_statement)
+                # Merge inferred imports at the front so explicit mentions take precedence
+                merged = inferred + [i for i in imports if i not in inferred]
+
+                # Always include a basic Nat import to avoid obvious missing symbols
+                if "import Mathlib.Init.Data.Nat.Basic" not in merged:
+                    merged.insert(0, "import Mathlib.Init.Data.Nat.Basic")
+
+                lean_content = "\n".join(merged) + "\n\n"
                 
                 # Write the theorem - properly combine statement and proof
                 if ':=' in theorem_statement and 'by sorry' in theorem_statement:
@@ -641,32 +901,89 @@ class FormalProofEngine:
         if previous_feedback:
             feedback_info = "\nPrevious feedback to address:\n" + "\n".join(previous_feedback[-3:])  # Last 3 feedback items
         
+        # Try to include axioms and proof strategies from the unified dictionary (if available)
+        axioms_block = ''
+        strategies_block = ''
+        try:
+            dict_path = os.path.join(os.getcwd(), 'dictionary.json')
+            if os.path.exists(dict_path):
+                with open(dict_path, 'r') as df:
+                    d = json.load(df)
+                    axioms = d.get('categories', {}).get('axioms', {}).get('facts', [])
+                    strategies = d.get('categories', {}).get('axioms', {}).get('proof_strategies', [])
+                    if axioms:
+                        axioms_block = '\nAxioms available:\n' + '\n'.join([f"- {a}" for a in axioms[:20]])
+                    if strategies:
+                        strategies_block = '\nProof strategies:\n' + '\n'.join([f"- {s}" for s in strategies[:10]])
+        except Exception:
+            axioms_block = ''
+            strategies_block = ''
+
+        # Suggest lemma names and focused context based on the informal statement
+        suggested_lemmas = ''
+        try:
+            # simple heuristics for Peano/addition problems
+            if any(k in lean_theorem.lower() for k in ['add', 'n + 0', 'addition', 'peano']):
+                suggested_lemmas = '\nSuggested lemmas:\n- add_zero_base: a + 0 = a\n- add_succ_rec: a + succ b = succ (a + b)\n- ind_hypothesis: use mathematical induction on n\n'
+        except Exception:
+            suggested_lemmas = ''
+
+        # If this appears to be a Peano/addition theorem, require a strict induction scaffold
+        peano_keywords = ['n + 0', 'add_zero', 'addition', 'peano', 'succ', 's(n)', 'suc', 'add_succ']
+        peano_scaffold = ''
+        try:
+            if any(k in (lean_theorem or '').lower() for k in peano_keywords):
+                peano_scaffold = '''
+Peano-specific scaffold (required for this theorem):
+Please produce a Lean 4 theorem using natural-number induction exactly in this pattern.
+Replace the theorem name and body as appropriate, but follow the structure below:
+
+theorem add_zero (n : ℕ) : n + 0 = n := by
+  induction n with
+  | zero => rfl
+  | succ n ih =>
+      -- rewrite using Nat.add_succ or the library lemma, then use ih
+      simp [Nat.add_succ, ih]
+
+Notes:
+- Use only imports Mathlib.Init.Data.Nat.Basic and Mathlib.Tactic.Basic.
+- Do NOT use 'sorry' or 'admit'.
+- Keep the proof compact and use the induction hypothesis in the succ case.
+'''
+        except Exception:
+            peano_scaffold = ''
+
         complete_proof_prompt = f"""
-You previously provided 'by sorry' for this theorem. Please provide a complete, working proof.
+You previously provided an incomplete proof (contained 'sorry' or was trivial). Please provide a complete, working Lean 4 proof for the theorem below.
 
 Theorem:
 {lean_theorem}
 
 Requirements:
-- Do NOT use 'sorry' 
-- Provide a complete proof using valid Lean 4 tactics
-- Use standard tactics: obtain, use, rw, ring, simp, apply, exact, intro
-- For Even n: means ∃ k, n = 2 * k (use obtain ⟨k, hk⟩ := ha)
-- For Odd n: means ∃ k, n = 2 * k + 1 (use obtain ⟨k, hk⟩ := ha)
-- Use proper Lean 4 syntax (not Lean 3)
-- If the theorem is too hard, try a simpler approach or use basic tactics
+- Do NOT use 'sorry' or 'admit'.
+- Provide a complete proof using valid Lean 4 tactics.
+- Prefer standard tactics: obtain, use, rw, ring, simp, apply, exact, intro, induction.
+- If the theorem concerns natural numbers, use Mathlib Nat basics and ring/simp as needed.
+- If the theorem concerns Even/Odd, show how to destructure witnesses (e.g., obtain ⟨k, hk⟩ := ha).
+- Keep the proof self-contained: include small lemmas if needed and rely on the imports Mathlib.Init.Data.Nat.Basic and Mathlib.Tactic.Basic.
+
+Context and hints to help you produce a valid proof:
+{axioms_block}
+{strategies_block}
+{context_info}
+{feedback_info}
+{suggested_lemmas}
 
 Important Lean 4 syntax examples:
 - Destructuring: obtain ⟨k, hk⟩ := ha
-- Providing witness: use k + l  
+- Providing witness: use k + l
 - Rewrites: rw [hk, hl]
 - Ring calculations: ring
-- Available import: Mathlib.Algebra.Ring.Parity
 
-{context_info}
-{feedback_info}
+If the theorem is too hard, try a simpler approach (prove helper lemmas first).
 
-Complete proof (start with 'by'):"""
+Now produce a complete proof (start the proof with 'by' and do NOT use 'sorry'):
+"""
 
         try:
             complete_proof = self.translator._generate_content(complete_proof_prompt, max_tokens=300)
