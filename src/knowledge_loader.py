@@ -66,6 +66,33 @@ class KnowledgeLoader:
         print(f"✓ Loaded {len(lemmas)} proven lemma(s)")
         return lemmas
     
+    def load_failures(self, memory_file: str = "proofs/proof_memory.json") -> list:
+        """Load failed proof attempts with analysis"""
+        filepath = os.path.join(self.base_dir, memory_file)
+        
+        if not os.path.exists(filepath):
+            return []
+        
+        with open(filepath, 'r') as f:
+            data = json.load(f)
+        
+        # Extract failed attempts that have analysis
+        failures = []
+        for proof in data.get('proofs', []):
+            if not proof.get('success', False):
+                for attempt in proof.get('attempts', []):
+                    if not attempt.get('success', False) and attempt.get('failure_analysis'):
+                        failures.append({
+                            'description': proof.get('description'),
+                            'statement': proof.get('statement'),
+                            'reasoning': attempt.get('reasoning', ''),
+                            'analysis': attempt.get('failure_analysis', '')
+                        })
+        
+        if failures:
+            print(f"✓ Loaded {len(failures)} analyzed failure(s)")
+        return failures
+    
     def load_question(self, filepath: str) -> dict:
         """
         Load a question from a markdown file
@@ -105,7 +132,7 @@ class KnowledgeLoader:
             'content': content
         }
     
-    def build_constrained_prompt(self, axioms: str, proof_methods: str, question: dict, lemmas: list = None, compact: bool = True) -> str:
+    def build_constrained_prompt(self, axioms: str, proof_methods: str, question: dict, lemmas: list = None, failures: list = None, compact: bool = True) -> str:
         """
         Build a prompt that constrains the LLM to only use provided axioms and methods
         
@@ -114,6 +141,7 @@ class KnowledgeLoader:
             proof_methods: Content of proof_methods.md
             question: Question dict from load_question()
             lemmas: List of proven lemmas (optional)
+            failures: List of failed attempts with analysis (optional)
             compact: If True, extract only essential info to fit smaller models
         
         Returns:
@@ -123,9 +151,15 @@ class KnowledgeLoader:
             # Extract just the key axioms and methods (compact version for small models)
             lemma_text = ""
             if lemmas:
-                lemma_text = "\n\nYou may also use these PROVEN lemmas:\n"
+                lemma_text = "\n\nYou may ASSUME these lemmas are TRUE (already proven):\n"
                 for i, lemma in enumerate(lemmas, 1):
-                    lemma_text += f"- Lemma {i}: {lemma['statement']}\n"
+                    lemma_text += f"- Lemma {i}: {lemma['statement']} [PROVEN - you can use this as a fact]\n"
+            
+            failure_text = ""
+            if failures:
+                failure_text = "\n\nAVOID these known mistakes from previous attempts:\n"
+                for i, failure in enumerate(failures, 1):
+                    failure_text += f"- Mistake {i} ({failure['description']}): {failure['analysis']}\n"
             
             prompt = f"""You are proving: {question['statement'] or question['title']}
 
@@ -133,7 +167,9 @@ Use ONLY these axioms:
 - Peano: 0 is natural, S(n) is successor, no n has S(n)=0, S injective
 - Induction: If P(0) and P(n)→P(S(n)), then P holds for all n
 - Order: For all a,b either a<b, a=b, or a>b
-- Exponents: a^0=1, a^m·a^n=a^(m+n), (a^m)^n=a^(mn), (ab)^n=a^n·b^n{lemma_text}
+- Exponents: a^0=1, a^m·a^n=a^(m+n), (a^m)^n=a^(mn), (ab)^n=a^n·b^n
+- Divisibility: a|b means b=a·k for some k. If a|b and b|c then a|c
+- Prime: p>1 is prime if only divisors are 1 and p. Every n>1 has a prime divisor{lemma_text}{failure_text}
 
 Use ONLY these methods:
 - Direct proof: Start with axioms, deduce conclusion

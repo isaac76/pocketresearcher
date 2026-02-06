@@ -23,6 +23,26 @@ This document contains fundamental mathematical axioms that can be used as build
 - **Additive Inverse**: $a + (-a) = 0$
 - **Multiplicative Inverse**: $a \cdot a^{-1} = 1$ (for $a \neq 0$)
 
+## Divisibility and Prime Numbers
+
+### Divisibility
+- **Definition**: We say $a$ divides $b$ (written $a \mid b$) if there exists an integer $k$ such that $b = a \cdot k$
+- **Reflexive**: Every integer divides itself: $a \mid a$
+- **Transitive**: If $a \mid b$ and $b \mid c$, then $a \mid c$
+- **Linear Combination**: If $a \mid b$ and $a \mid c$, then $a \mid (bx + cy)$ for any integers $x$ and $y$
+
+### Prime Numbers
+- **Definition of Prime**: A natural number $p > 1$ is prime if its only positive divisors are $1$ and $p$ itself
+- **Definition of Composite**: A natural number $n > 1$ is composite if it has a divisor $d$ where $1 < d < n$
+- **Two is Prime**: $2$ is a prime number
+- **Fundamental Property**: If $p$ is prime and $p \mid ab$, then $p \mid a$ or $p \mid b$
+- **Existence of Prime Divisors**: Every integer $n > 1$ has at least one prime divisor
+
+### Division Algorithm
+- For any integers $a$ and $b$ with $b > 0$, there exist unique integers $q$ (quotient) and $r$ (remainder) such that:
+  - $a = bq + r$
+  - $0 \leq r < b$
+
 ## Peano Axioms (Natural Numbers)
 
 1. **Zero is a natural number**: $0 \in \mathbb{N}$

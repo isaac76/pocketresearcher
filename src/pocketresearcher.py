@@ -7,6 +7,7 @@ A system for exploring mathematical proofs using local LLMs, axioms, and proof m
 
 import sys
 import os
+import argparse
 
 # Add src directory to path if running from project root
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -21,19 +22,28 @@ from knowledge_loader import KnowledgeLoader
 def main():
     """Main entry point for PocketResearcher"""
     
+    # Parse command line arguments
+    parser = argparse.ArgumentParser(description='PocketResearcher - Mathematical Proof Explorer')
+    parser.add_argument('model', nargs='?', default='gpt2-medium',
+                        help='LLM model name (phi2, gpt2-medium, etc.)')
+    parser.add_argument('question', nargs='?', default='questions/q001_no_largest_natural.md',
+                        help='Path to question file')
+    parser.add_argument('--show-full-prompt', action='store_true',
+                        help='Display the full prompt (all axioms, methods, lemmas)')
+    parser.add_argument('--show-compact-prompt', action='store_true',
+                        help='Display the compact prompt used for small models')
+    parser.add_argument('--max-tokens', type=int, default=300,
+                        help='Maximum tokens for LLM response (default: 300)')
+    
+    args = parser.parse_args()
+    
+    model_name = args.model
+    question_file = args.question
+    
     print("=" * 60)
     print("PocketResearcher - Mathematical Proof Explorer")
     print("=" * 60)
     print()
-    
-    # Parse command line arguments
-    model_name = "gpt2-medium"  # default
-    question_file = "questions/q001_no_largest_natural.md"  # default
-    
-    if len(sys.argv) > 1:
-        model_name = sys.argv[1]
-    if len(sys.argv) > 2:
-        question_file = sys.argv[2]
     
     # Initialize components
     print("🔧 Initializing system...")
@@ -53,11 +63,12 @@ def main():
     loader = KnowledgeLoader(project_root)
     print()
     
-    # Load axioms, proof methods, and lemmas
+    # Load axioms, proof methods, lemmas, and failures
     print("📚 Loading knowledge base...")
     axioms = loader.load_axioms()
     proof_methods = loader.load_proof_methods()
     lemmas = loader.load_lemmas()
+    failures = loader.load_failures()
     question = loader.load_question(os.path.join(project_root, question_file))
     print()
     
@@ -78,24 +89,36 @@ def main():
     # Phi-2 has 2048 token limit, needs compact prompt
     # Larger models can handle full prompt
     use_compact = model_name in ["phi2", "gpt2", "gpt2-medium", "gpt2-large"]
-    prompt = loader.build_constrained_prompt(axioms, proof_methods, question, lemmas=lemmas, compact=use_compact)
+    prompt = loader.build_constrained_prompt(axioms, proof_methods, question, lemmas=lemmas, failures=failures, compact=use_compact)
     print(f"   Prompt type: {'Compact' if use_compact else 'Full'}")
     print(f"   Prompt size: {len(prompt)} characters")
     print()
     
-    # Display the full prompt for transparency
-    print("=" * 60)
-    print("PROMPT SENT TO LLM")
-    print("=" * 60)
-    print(prompt)
-    print("=" * 60)
-    print()
+    # Display prompts if requested via flags
+    if args.show_full_prompt:
+        full_prompt = loader.build_constrained_prompt(axioms, proof_methods, question, lemmas=lemmas, failures=failures, compact=False)
+        print("=" * 60)
+        print("FULL PROMPT (ALL AXIOMS AND METHODS)")
+        print("=" * 60)
+        print(full_prompt)
+        print("=" * 60)
+        print()
+    
+    if args.show_compact_prompt:
+        compact_prompt = loader.build_constrained_prompt(axioms, proof_methods, question, lemmas=lemmas, failures=failures, compact=True)
+        print("=" * 60)
+        print("COMPACT PROMPT (SUMMARIZED)")
+        print("=" * 60)
+        print(compact_prompt)
+        print("=" * 60)
+        print()
     
     # Generate proof attempt
     print("🧠 Asking LLM to prove the statement...")
+    print(f"   Max tokens: {args.max_tokens}")
     print("   (This may take a moment...)")
     print()
-    response = llm.generate(prompt, max_tokens=200)
+    response = llm.generate(prompt, max_tokens=args.max_tokens)
     
     # Display result
     print("=" * 60)

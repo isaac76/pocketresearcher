@@ -98,7 +98,8 @@ class ProofMemory:
                    proof_method: str,
                    axioms_used: List[str],
                    reasoning: str,
-                   success: bool = False) -> bool:
+                   success: bool = False,
+                   failure_analysis: str = None) -> bool:
         """
         Add an attempt to prove something
         
@@ -108,6 +109,7 @@ class ProofMemory:
             axioms_used: List of axioms/lemmas used in the attempt
             reasoning: The actual proof reasoning/text
             success: Whether this attempt succeeded
+            failure_analysis: Optional analysis of why the attempt failed
         
         Returns:
             True if attempt was added successfully
@@ -126,12 +128,17 @@ class ProofMemory:
             'timestamp': datetime.now().isoformat()
         }
         
+        if failure_analysis:
+            attempt['failure_analysis'] = failure_analysis
+        
         proof['attempts'].append(attempt)
         
         # If this attempt succeeded, mark the whole proof as successful
         if success:
             proof['success'] = True
             print(f"🎉 Proof #{proof_id} marked as SUCCESSFUL!")
+        else:
+            print(f"⚠️  Proof #{proof_id} attempt failed")
         
         self.save()
         print(f"✓ Added attempt #{attempt['attempt_number']} to proof #{proof_id}")
