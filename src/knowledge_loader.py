@@ -132,7 +132,8 @@ class KnowledgeLoader:
 Use ONLY these axioms:
 - Peano: 0 is natural, S(n) is successor, no n has S(n)=0, S injective
 - Induction: If P(0) and P(n)→P(S(n)), then P holds for all n
-- Order: For all a,b either a<b, a=b, or a>b{lemma_text}
+- Order: For all a,b either a<b, a=b, or a>b
+- Exponents: a^0=1, a^m·a^n=a^(m+n), (a^m)^n=a^(mn), (ab)^n=a^n·b^n{lemma_text}
 
 Use ONLY these methods:
 - Direct proof: Start with axioms, deduce conclusion

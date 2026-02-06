@@ -74,8 +74,21 @@ def main():
     print("📝 Statement:", question['statement'])
     print()
     print("🤔 Building constrained prompt for LLM...")
-    prompt = loader.build_constrained_prompt(axioms, proof_methods, question, lemmas=lemmas, compact=True)
+    
+    # Phi-2 has 2048 token limit, needs compact prompt
+    # Larger models can handle full prompt
+    use_compact = model_name in ["phi2", "gpt2", "gpt2-medium", "gpt2-large"]
+    prompt = loader.build_constrained_prompt(axioms, proof_methods, question, lemmas=lemmas, compact=use_compact)
+    print(f"   Prompt type: {'Compact' if use_compact else 'Full'}")
     print(f"   Prompt size: {len(prompt)} characters")
+    print()
+    
+    # Display the full prompt for transparency
+    print("=" * 60)
+    print("PROMPT SENT TO LLM")
+    print("=" * 60)
+    print(prompt)
+    print("=" * 60)
     print()
     
     # Generate proof attempt

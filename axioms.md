@@ -42,6 +42,22 @@ This document contains fundamental mathematical axioms that can be used as build
 - If $a < b$, then $a + c < b + c$
 - If $a < b$ and $c > 0$, then $a \cdot c < b \cdot c$
 
+## Exponentiation Axioms
+
+### Fundamental Rules
+- **Zero Exponent**: $a^0 = 1$ for any $a \neq 0$
+- **Multiplication Rule (Same Base)**: $a^m \cdot a^n = a^{m+n}$
+- **Division Rule (Same Base)**: $\frac{a^m}{a^n} = a^{m-n}$ for $a \neq 0$
+- **Power of a Power**: $(a^m)^n = a^{mn}$
+- **Power of a Product**: $(ab)^n = a^n b^n$
+- **Negative Exponent**: $a^{-n} = \frac{1}{a^n}$ for $a \neq 0$
+- **Fractional Exponent**: $a^{\frac{1}{n}} = \sqrt[n]{a}$ (the $n$-th root of $a$)
+
+### Properties of Exponentiation
+- **Not Commutative**: In general, $a^b \neq b^a$
+- **Not Associative**: In general, $(a^b)^c \neq a^{(b^c)}$
+- **Order of Operations**: In stacked notation $a^{b^c}$, evaluate as $a^{(b^c)}$ (top-down)
+
 ## Logical Axioms
 
 ### Basic Logic
