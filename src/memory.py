@@ -1,207 +1,272 @@
-import os
+"""
+Memory System for Tracking Mathematical Proofs
+
+Stores proof attempts, methods used, axioms applied, and success/failure status.
+Uses JSON for persistent storage.
+"""
+
 import json
-from typing import Optional, Dict, List, Any
+import os
+from typing import List, Dict, Optional, Any
+from datetime import datetime
 
-# Optional imports for database support
-try:
-    import pymongo
-except ImportError:
-    pymongo = None
-try:
-    import memcache
-except ImportError:
-    memcache = None
 
-class MemoryBackend:
-    FILE = "file"
-    MONGODB = "mongodb"
-    MEMCACHED = "memcached"
-
-class Memory:
-    def __init__(self, config: Optional[dict] = None, category: str = None):
-        self.backend = config.get("backend", MemoryBackend.FILE) if config else MemoryBackend.FILE
-        self.category = category  # Current working category
+class ProofMemory:
+    """Manages storage and retrieval of proof attempts"""
+    
+    def __init__(self, memory_file: str = "proofs/proof_memory.json"):
+        """
+        Initialize the proof memory system
         
-        # Use configured file path or default to dictionary.json for unified storage
-        if config and "file_path" in config:
-            # If relative path, make it relative to project root
-            configured_path = config["file_path"]
-            if not os.path.isabs(configured_path):
-                project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-                self.file_path = os.path.join(project_root, configured_path)
-            else:
-                self.file_path = configured_path
-        else:
-            # Default to unified dictionary.json
-            self.file_path = self._get_dictionary_path()
-            
-        self.mongo_uri = config.get("mongo_uri") if config else None
-        self.mongo_db = config.get("mongo_db", "pocketresearcher") if config else "pocketresearcher"
-        self.mongo_collection = config.get("mongo_collection", "memory") if config else "memory"
-        self.memcached_host = config.get("memcached_host", "127.0.0.1:11211") if config else "127.0.0.1:11211"
-        self._setup_backend()
-
-    def _get_dictionary_path(self):
-        """Get the correct path to dictionary.json regardless of execution context."""
-        # Get the directory where this file (memory.py) is located
-        current_dir = os.path.dirname(os.path.abspath(__file__))
-        # Go up one level to the project root and find dictionary.json
-        project_root = os.path.dirname(current_dir)
-        dictionary_path = os.path.join(project_root, "dictionary.json")
-        return dictionary_path
-
-    def _get_memory_path(self):
-        """Get the correct path to memory.json regardless of execution context."""
-        # Get the directory where this file (memory.py) is located
-        current_dir = os.path.dirname(os.path.abspath(__file__))
-        # Go up one level to the project root and find memory.json
-        project_root = os.path.dirname(current_dir)
-        memory_path = os.path.join(project_root, "memory.json")
-        return memory_path
-
-    def _setup_backend(self):
-        if self.backend == MemoryBackend.MONGODB and pymongo:
-            self.mongo_client = pymongo.MongoClient(self.mongo_uri)
-            self.collection = self.mongo_client[self.mongo_db][self.mongo_collection]
-        elif self.backend == MemoryBackend.MEMCACHED and memcache:
-            self.mc = memcache.Client([self.memcached_host], debug=0)
-
-    def load(self, category: str = None):
-        """Load memory data, optionally for a specific category"""
-        if self.backend == MemoryBackend.FILE:
-            if os.path.exists(self.file_path):
-                with open(self.file_path, "r") as f:
+        Args:
+            memory_file: Path to the JSON file for persistent storage
+        """
+        self.memory_file = memory_file
+        
+        # Ensure the proofs directory exists
+        proofs_dir = os.path.dirname(memory_file)
+        if proofs_dir and not os.path.exists(proofs_dir):
+            os.makedirs(proofs_dir)
+            print(f"✓ Created directory: {proofs_dir}")
+        
+        self.proofs = []
+        self._next_proof_id = 1
+        self.load()
+    
+    def load(self):
+        """Load existing proofs from JSON file"""
+        if os.path.exists(self.memory_file):
+            try:
+                with open(self.memory_file, 'r') as f:
                     data = json.load(f)
-                    
-                # Handle unified dictionary format
-                if "categories" in data:
-                    if category:
-                        if category in data["categories"]:
-                            return data["categories"][category]
-                        else:
-                            # Create empty category structure
-                            empty_category = {"facts": [], "ideas": [], "reflections": [], "proofs": [], "techniques": [], "experiments": [], "formal_proofs": []}
-                            return empty_category
-                    else:
-                        # Return the entire dictionary structure
-                        return data
-                else:
-                    # Legacy format - return as-is
-                    return data
-                    
-            # Create empty dictionary if file doesn't exist
-            empty_dict = {
-                "categories": {}
+                    self.proofs = data.get('proofs', [])
+                    self._next_proof_id = data.get('next_proof_id', 1)
+                print(f"✓ Loaded {len(self.proofs)} proofs from {self.memory_file}")
+            except Exception as e:
+                print(f"⚠ Error loading memory: {e}")
+                self.proofs = []
+                self._next_proof_id = 1
+        else:
+            print(f"✓ Starting fresh - no existing memory file")
+            self.proofs = []
+    
+    def save(self):
+        """Save all proofs to JSON file"""
+        try:
+            data = {
+                'proofs': self.proofs,
+                'next_proof_id': self._next_proof_id,
+                'last_updated': datetime.now().isoformat()
             }
-            if category:
-                empty_dict["categories"][category] = {"facts": [], "ideas": [], "reflections": [], "proofs": [], "techniques": [], "experiments": [], "formal_proofs": []}
-                return empty_dict["categories"][category]
-            return empty_dict
-            
-        elif self.backend == MemoryBackend.MONGODB and pymongo:
-            doc_id = f"memory_{category}" if category else "memory"
-            doc = self.collection.find_one({"_id": doc_id})
-            if doc:
-                return doc.get("data", {"facts": [], "ideas": [], "reflections": [], "proofs": [], "techniques": [], "experiments": [], "formal_proofs": []})
-            return {"facts": [], "ideas": [], "reflections": [], "proofs": [], "techniques": [], "experiments": [], "formal_proofs": []}
-            
-        elif self.backend == MemoryBackend.MEMCACHED and memcache:
-            cache_key = f"memory_{category}" if category else "memory"
-            data = self.mc.get(cache_key)
-            if data:
-                return json.loads(data)
-            return {"facts": [], "ideas": [], "reflections": [], "proofs": [], "techniques": [], "experiments": [], "formal_proofs": []}
-        else:
-            raise RuntimeError("Unsupported backend or missing library")
-
-    def save(self, memory, category: str = None):
-        """Save memory data, optionally for a specific category"""
-        if self.backend == MemoryBackend.FILE:
-            # Load existing dictionary structure
-            if os.path.exists(self.file_path):
-                with open(self.file_path, "r") as f:
-                    full_data = json.load(f)
-            else:
-                full_data = {"categories": {}}
-                
-            # Ensure categories structure exists
-            if "categories" not in full_data:
-                full_data["categories"] = {}
-
-            # Fallback to self.category if category not provided
-            if category is None:
-                category = self.category
-
-            # If memory is already in unified format, save directly
-            if "categories" in memory:
-                full_data = memory
-            else:
-                # Legacy save - need to specify category
-                if not category:
-                    raise ValueError("Category must be specified when saving legacy format data")
-                # Save to specific category
-                full_data["categories"][category] = memory
-                    
-            # Write back to file
-            with open(self.file_path, "w") as f:
-                json.dump(full_data, f, indent=2)
-                
-        elif self.backend == MemoryBackend.MONGODB and pymongo:
-            doc_id = f"memory_{category}" if category else "memory"
-            self.collection.update_one({"_id": doc_id}, {"$set": {"data": memory}}, upsert=True)
-            
-        elif self.backend == MemoryBackend.MEMCACHED and memcache:
-            cache_key = f"memory_{category}" if category else "memory"
-            self.mc.set(cache_key, json.dumps(memory))
-        else:
-            raise RuntimeError("Unsupported backend or missing library")
-
-    def get_solved_problems(self) -> List[str]:
-        """Get list of categories marked as solved"""
-        full_data = self.load()
-        if "categories" not in full_data:
-            return []
-            
-        solved = []
-        for category, data in full_data["categories"].items():
-            if data.get("solved", False):
-                solved.append(category)
-        return solved
-
-    def mark_problem_solved(self, category: str, proof_data: Dict = None):
-        """Mark a problem category as solved and optionally store the proof"""
-        category_data = self.load(category)
-        category_data["solved"] = True
-        category_data["solved_timestamp"] = json.dumps({"timestamp": "now"})  # Simple timestamp
+            with open(self.memory_file, 'w') as f:
+                json.dump(data, f, indent=2)
+            print(f"✓ Saved {len(self.proofs)} proofs to {self.memory_file}")
+        except Exception as e:
+            print(f"✗ Error saving memory: {e}")
+    
+    def create_proof(self, description: str, statement: str = None) -> int:
+        """
+        Create a new proof entry
         
-        if proof_data:
-            if "formal_proofs" not in category_data:
-                category_data["formal_proofs"] = []
-            category_data["formal_proofs"].append(proof_data)
-            
-        self.save(category_data, category)
-
-    def get_reusable_theorems(self, domain: str = None) -> List[Dict]:
-        """Get proven theorems that could be reused in other problems"""
-        full_data = self.load()
-        if "categories" not in full_data:
+        Args:
+            description: Human-readable description of what to prove
+            statement: Optional formal statement (e.g., "For all n in N, exists m > n")
+        
+        Returns:
+            proof_id: Unique identifier for this proof
+        """
+        proof_id = self._next_proof_id
+        self._next_proof_id += 1
+        
+        proof = {
+            'proof_id': proof_id,
+            'description': description,
+            'statement': statement,
+            'attempts': [],
+            'lemma': None,
+            'success': False,
+            'created_at': datetime.now().isoformat()
+        }
+        
+        self.proofs.append(proof)
+        self.save()
+        print(f"✓ Created proof #{proof_id}: {description}")
+        return proof_id
+    
+    def add_attempt(self, 
+                   proof_id: int,
+                   proof_method: str,
+                   axioms_used: List[str],
+                   reasoning: str,
+                   success: bool = False) -> bool:
+        """
+        Add an attempt to prove something
+        
+        Args:
+            proof_id: ID of the proof to add attempt to
+            proof_method: Name of proof method used (e.g., "contradiction", "induction")
+            axioms_used: List of axioms/lemmas used in the attempt
+            reasoning: The actual proof reasoning/text
+            success: Whether this attempt succeeded
+        
+        Returns:
+            True if attempt was added successfully
+        """
+        proof = self._get_proof_by_id(proof_id)
+        if not proof:
+            print(f"✗ Proof #{proof_id} not found")
+            return False
+        
+        attempt = {
+            'attempt_number': len(proof['attempts']) + 1,
+            'proof_method': proof_method,
+            'axioms_used': axioms_used,
+            'reasoning': reasoning,
+            'success': success,
+            'timestamp': datetime.now().isoformat()
+        }
+        
+        proof['attempts'].append(attempt)
+        
+        # If this attempt succeeded, mark the whole proof as successful
+        if success:
+            proof['success'] = True
+            print(f"🎉 Proof #{proof_id} marked as SUCCESSFUL!")
+        
+        self.save()
+        print(f"✓ Added attempt #{attempt['attempt_number']} to proof #{proof_id}")
+        return True
+    
+    def mark_as_lemma(self, proof_id: int, lemma_statement: str):
+        """
+        Mark a successful proof as a lemma that can be used in future proofs
+        
+        Args:
+            proof_id: ID of the proven statement
+            lemma_statement: Concise statement of the lemma for reuse
+        """
+        proof = self._get_proof_by_id(proof_id)
+        if not proof:
+            print(f"✗ Proof #{proof_id} not found")
+            return False
+        
+        if not proof['success']:
+            print(f"⚠ Warning: Marking unproven statement as lemma")
+        
+        proof['lemma'] = lemma_statement
+        self.save()
+        print(f"✓ Proof #{proof_id} marked as lemma: {lemma_statement}")
+        return True
+    
+    def get_proof(self, proof_id: int) -> Optional[Dict]:
+        """Get a specific proof by ID"""
+        return self._get_proof_by_id(proof_id)
+    
+    def get_all_proofs(self) -> List[Dict]:
+        """Get all proofs"""
+        return self.proofs
+    
+    def get_successful_proofs(self) -> List[Dict]:
+        """Get all successful proofs"""
+        return [p for p in self.proofs if p['success']]
+    
+    def get_failed_proofs(self) -> List[Dict]:
+        """Get all proofs that haven't succeeded yet"""
+        return [p for p in self.proofs if not p['success']]
+    
+    def get_available_lemmas(self) -> List[Dict]:
+        """Get all proven statements that can be used as lemmas"""
+        return [p for p in self.proofs if p['success'] and p['lemma']]
+    
+    def get_failed_attempts(self, proof_id: int) -> List[Dict]:
+        """Get all failed attempts for a specific proof (to learn from mistakes)"""
+        proof = self._get_proof_by_id(proof_id)
+        if not proof:
             return []
-            
-        reusable_theorems = []
-        for category, data in full_data["categories"].items():
-            if data.get("solved", False):
-                # Extract formal proofs and successful theorems
-                for proof in data.get("formal_proofs", []):
-                    if proof.get("success", False) and proof.get("verification_status") == "verified":
-                        theorem_info = {
-                            "source_category": category,
-                            "theorem_name": proof.get("theorem_name", "unknown"),
-                            "lean_statement": proof.get("lean_statement", ""),
-                            "informal_statement": proof.get("informal_statement", ""),
-                            "proof_attempt": proof.get("proof_attempt", ""),
-                            "domain": data.get("domain", "unknown")
-                        }
-                        if not domain or theorem_info["domain"] == domain:
-                            reusable_theorems.append(theorem_info)
-                            
-        return reusable_theorems
+        return [a for a in proof['attempts'] if not a['success']]
+    
+    def find_proofs_by_description(self, keyword: str) -> List[Dict]:
+        """Search for proofs by keyword in description"""
+        keyword_lower = keyword.lower()
+        return [p for p in self.proofs if keyword_lower in p['description'].lower()]
+    
+    def get_statistics(self) -> Dict[str, Any]:
+        """Get statistics about proof attempts"""
+        total_proofs = len(self.proofs)
+        successful = len(self.get_successful_proofs())
+        failed = total_proofs - successful
+        total_attempts = sum(len(p['attempts']) for p in self.proofs)
+        lemmas = len(self.get_available_lemmas())
+        
+        # Count proof methods used
+        method_counts = {}
+        for proof in self.proofs:
+            for attempt in proof['attempts']:
+                method = attempt['proof_method']
+                method_counts[method] = method_counts.get(method, 0) + 1
+        
+        return {
+            'total_proofs': total_proofs,
+            'successful_proofs': successful,
+            'failed_proofs': failed,
+            'success_rate': f"{(successful/total_proofs*100):.1f}%" if total_proofs > 0 else "0%",
+            'total_attempts': total_attempts,
+            'available_lemmas': lemmas,
+            'methods_used': method_counts
+        }
+    
+    def print_statistics(self):
+        """Print a summary of proof statistics"""
+        stats = self.get_statistics()
+        print("\n" + "="*50)
+        print("PROOF MEMORY STATISTICS")
+        print("="*50)
+        print(f"Total Proofs: {stats['total_proofs']}")
+        print(f"  ✓ Successful: {stats['successful_proofs']}")
+        print(f"  ✗ Failed: {stats['failed_proofs']}")
+        print(f"  Success Rate: {stats['success_rate']}")
+        print(f"Total Attempts: {stats['total_attempts']}")
+        print(f"Available Lemmas: {stats['available_lemmas']}")
+        if stats['methods_used']:
+            print("\nProof Methods Used:")
+            for method, count in sorted(stats['methods_used'].items(), key=lambda x: x[1], reverse=True):
+                print(f"  - {method}: {count}")
+        print("="*50 + "\n")
+    
+    def print_proof(self, proof_id: int):
+        """Print detailed information about a specific proof"""
+        proof = self._get_proof_by_id(proof_id)
+        if not proof:
+            print(f"✗ Proof #{proof_id} not found")
+            return
+        
+        print("\n" + "="*50)
+        print(f"PROOF #{proof['proof_id']}")
+        print("="*50)
+        print(f"Description: {proof['description']}")
+        if proof['statement']:
+            print(f"Statement: {proof['statement']}")
+        print(f"Status: {'✓ PROVEN' if proof['success'] else '✗ NOT YET PROVEN'}")
+        if proof['lemma']:
+            print(f"Lemma: {proof['lemma']}")
+        print(f"\nAttempts: {len(proof['attempts'])}")
+        
+        for i, attempt in enumerate(proof['attempts'], 1):
+            print(f"\n--- Attempt #{i} ---")
+            print(f"Method: {attempt['proof_method']}")
+            print(f"Axioms Used: {', '.join(attempt['axioms_used']) if attempt['axioms_used'] else 'None'}")
+            print(f"Status: {'✓ SUCCESS' if attempt['success'] else '✗ FAILED'}")
+            print(f"Reasoning:\n{attempt['reasoning'][:200]}{'...' if len(attempt['reasoning']) > 200 else ''}")
+        
+        print("="*50 + "\n")
+    
+    def _get_proof_by_id(self, proof_id: int) -> Optional[Dict]:
+        """Internal method to find proof by ID"""
+        for proof in self.proofs:
+            if proof['proof_id'] == proof_id:
+                return proof
+        return None
+
+
+if __name__ == "__main__":
+    print("ProofMemory module - run tests with: python test/test_memory.py")

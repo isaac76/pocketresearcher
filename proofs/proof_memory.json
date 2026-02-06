@@ -1,0 +1,61 @@
+{
+  "proofs": [
+    {
+      "proof_id": 1,
+      "description": "Prove there is no largest natural number",
+      "statement": "For all natural numbers n, there exists a natural number m such that m > n",
+      "attempts": [
+        {
+          "attempt_number": 1,
+          "proof_method": "contradiction",
+          "axioms_used": [
+            "Peano successor axiom",
+            "S(n) is successor function"
+          ],
+          "reasoning": "Start with Peano axioms: 0 is natural, S(n) is successor, no n has S(n)=0, S injective. \nAssume a natural number n is the largest natural number. Then, there exists a natural number m such that \nS(m) = n + 1. But this contradicts our assumption that S(m) = n + 1. Therefore, n cannot be the largest \nnatural number.",
+          "success": true,
+          "timestamp": "2026-02-06T12:47:35.193334"
+        },
+        {
+          "attempt_number": 2,
+          "proof_method": "contradiction",
+          "axioms_used": [
+            "Peano successor axiom",
+            "Successor injective",
+            "Zero has no predecessor"
+          ],
+          "reasoning": "Assume there exists a natural number n that is the largest natural number. But then, \nthere must exist a natural number m such that S(m) = n + 1. But S(m) = n + 1 implies that m = S(n) - 1. \nSince n is the largest natural number, it must be equal to the successor of itself. But this contradicts \nthe Peano axioms that say no n has S(n)=0 and S(0)=0",
+          "success": true,
+          "timestamp": "2026-02-06T12:47:35.193403"
+        }
+      ],
+      "lemma": "For any natural number n, there exists a natural number greater than n (no largest natural)",
+      "success": true,
+      "created_at": "2026-02-06T12:47:35.193219"
+    },
+    {
+      "proof_id": 2,
+      "description": "Prove there are infinitely many prime numbers",
+      "statement": "There are infinitely many prime numbers",
+      "attempts": [
+        {
+          "attempt_number": 1,
+          "proof_method": "induction, contradiction",
+          "axioms_used": [
+            "Peano axioms",
+            "Natural numbers",
+            "Prime factorization"
+          ],
+          "reasoning": "To prove that there are infinitely many primes, we will use the induction method.\n\nBase case:\nFor n = 1, we have the natural number 1, which is not prime.\n\nInductive step:\nAssume that for some natural number n, there are no primes larger than n.\n\nTake an arbitrary natural number k greater than n. By the assumption, k is not prime.\n\nNow, we can write k = p1 * p2 *... * pk, where pi are prime numbers.\n\nSince k > n, there must be at least one prime pi that is larger than n.\n\nBut this contradicts the assumption that there are no primes larger than n.\n\nTherefore, our assumption is false, and there must be at least one prime larger than n.\n\nThis implies that there are infinitely many primes.",
+          "success": true,
+          "timestamp": "2026-02-06T12:57:18.142580"
+        }
+      ],
+      "lemma": "There are infinitely many prime numbers",
+      "success": true,
+      "created_at": "2026-02-06T12:57:18.142454"
+    }
+  ],
+  "next_proof_id": 3,
+  "last_updated": "2026-02-06T12:57:18.143915"
+}
